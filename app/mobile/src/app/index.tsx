@@ -1,5 +1,6 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
+import { Platform, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -53,6 +54,16 @@ export default function HomeScreen() {
             title="Fresh start"
             hint={<ThemedText type="code">npm run reset-project</ThemedText>}
           />
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.stepContainer}>
+          <ThemedText type="small">ResQKit RN spikes</ThemedText>
+          <Link href="/spike-kit-scanner">
+            <Text style={{ color: '#0274df' }}>Kit scanner (camera round-trip)</Text>
+          </Link>
+          <Link href="/spike-metronome">
+            <Text style={{ color: '#0274df' }}>CPR metronome (audio + haptics)</Text>
+          </Link>
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}

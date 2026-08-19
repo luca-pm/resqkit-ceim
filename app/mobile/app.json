@@ -32,6 +32,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "expo-audio",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ResQKit uses the camera to identify what's in your first-aid kit. The photo is analyzed once and never saved."
+        }
       ]
     ],
     "experiments": {
