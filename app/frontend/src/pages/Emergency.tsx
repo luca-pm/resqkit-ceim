@@ -40,6 +40,9 @@ import { buildDispatcherScript, formatCoords } from '@/lib/brief';
 import {
   connectNg112,
   ensureSession,
+  logHazards,
+  logKitSelection,
+  logProcedureStep,
   logTriageAnswer,
   testInstitutionalVoiceChannel,
 } from '@/lib/institutionalActions';
@@ -606,7 +609,14 @@ const Emergency: React.FC = () => {
           </Card>
         )}
 
-        <Button size="lg" className="w-full" onClick={() => setStage('kit')}>
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => {
+            void logHazards(incident, settings.realDataMode, incident.hazards, logInstitutional, onSession);
+            setStage('kit');
+          }}
+        >
           Continue to your kit
           <ChevronRight className="ml-2 h-5 w-5" aria-hidden="true" />
         </Button>
@@ -638,6 +648,14 @@ const Emergency: React.FC = () => {
           onClick={() => {
             const id = incident.procedureId ?? routeProcedure(incident);
             updateIncident({ procedureId: id });
+            void logKitSelection(
+              incident,
+              settings.realDataMode,
+              incident.kitItems,
+              incident.kitSource,
+              logInstitutional,
+              onSession,
+            );
             setStage('guide');
           }}
         >
@@ -667,6 +685,7 @@ const Emergency: React.FC = () => {
   const addStep = (step: CompletedStep) => {
     const existing = incident.completedSteps.filter((s) => s.index !== step.index);
     updateIncident({ completedSteps: [...existing, step].sort((a, b) => a.index - b.index) });
+    void logProcedureStep(incident, settings.realDataMode, step.index, step.title, logInstitutional, onSession);
   };
 
   return (

@@ -65,6 +65,9 @@ export type InstitutionalAction =
   | 'stream.connect'
   | 'stream.terminate'
   | 'triage.answer'
+  | 'hazards.confirm'
+  | 'kit.confirm'
+  | 'procedure.step'
   | 'ng_protocol.build'
   | 'session.terminate';
 

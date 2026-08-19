@@ -26,6 +26,9 @@ const ACTION_LABELS: Record<string, string> = {
   'stream.connect': 'Websocket connected',
   'stream.terminate': 'Websocket terminated',
   'triage.answer': 'Triage answer logged',
+  'hazards.confirm': 'Hazards confirmed',
+  'kit.confirm': 'Kit selection confirmed',
+  'procedure.step': 'Procedure step completed',
   'ng_protocol.build': 'NG protocol payload built',
   'session.terminate': 'Session terminated',
 };

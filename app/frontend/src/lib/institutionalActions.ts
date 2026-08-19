@@ -133,6 +133,93 @@ export async function logTriageAnswer(
   });
 }
 
+/** Records the confirmed hazard selection when leaving the hazards stage. */
+export async function logHazards(
+  incident: IncidentState,
+  realDataMode: boolean,
+  hazards: string[],
+  log: LogFn,
+  onSession: SessionFn,
+): Promise<void> {
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
+  if (!sessionId) return;
+
+  const summary = hazards.length ? hazards.join(', ') : 'none';
+  if (!realDataMode) {
+    log({ action: 'hazards.confirm', mode: 'simulated', detail: `Simulated log of hazards=[${summary}]`, ok: true });
+    return;
+  }
+
+  await safely('hazards.confirm', 'real', log, async () => {
+    await client.apiCall.invoke({
+      url: `/api/v1/incident_sessions/${sessionId}/events`,
+      method: 'POST',
+      data: { event_type: 'hazards_confirmed', payload: { hazards } },
+    });
+    return { detail: `Logged hazards=[${summary}] to backend session ${sessionId}`, result: true };
+  });
+}
+
+/** Records the confirmed kit item selection when leaving the kit stage. */
+export async function logKitSelection(
+  incident: IncidentState,
+  realDataMode: boolean,
+  kitItems: string[],
+  kitSource: string | null,
+  log: LogFn,
+  onSession: SessionFn,
+): Promise<void> {
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
+  if (!sessionId) return;
+
+  const summary = kitItems.length ? kitItems.join(', ') : 'none';
+  if (!realDataMode) {
+    log({ action: 'kit.confirm', mode: 'simulated', detail: `Simulated log of kit=[${summary}]`, ok: true });
+    return;
+  }
+
+  await safely('kit.confirm', 'real', log, async () => {
+    await client.apiCall.invoke({
+      url: `/api/v1/incident_sessions/${sessionId}/events`,
+      method: 'POST',
+      data: { event_type: 'kit_confirmed', payload: { kit_items: kitItems, source: kitSource } },
+    });
+    return { detail: `Logged kit=[${summary}] to backend session ${sessionId}`, result: true };
+  });
+}
+
+/** Records each completed first-aid procedure step. */
+export async function logProcedureStep(
+  incident: IncidentState,
+  realDataMode: boolean,
+  stepIndex: number,
+  stepTitle: string,
+  log: LogFn,
+  onSession: SessionFn,
+): Promise<void> {
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
+  if (!sessionId) return;
+
+  if (!realDataMode) {
+    log({
+      action: 'procedure.step',
+      mode: 'simulated',
+      detail: `Simulated log of step ${stepIndex + 1}: ${stepTitle}`,
+      ok: true,
+    });
+    return;
+  }
+
+  await safely('procedure.step', 'real', log, async () => {
+    await client.apiCall.invoke({
+      url: `/api/v1/incident_sessions/${sessionId}/events`,
+      method: 'POST',
+      data: { event_type: 'procedure_step', payload: { index: stepIndex, title: stepTitle } },
+    });
+    return { detail: `Logged step ${stepIndex + 1}: ${stepTitle} to backend session ${sessionId}`, result: true };
+  });
+}
+
 /** PVR request + a short websocket connect/ping/close cycle, to demonstrate the streaming pipeline. */
 export async function testInstitutionalVoiceChannel(
   incident: IncidentState,
