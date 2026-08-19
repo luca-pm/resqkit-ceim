@@ -1,0 +1,25 @@
+# Python backend
+app/backend/.venv/
+app/backend/__pycache__/
+**/__pycache__/
+*.pyc
+app/backend/logs/
+
+# Node frontend
+app/frontend/node_modules/
+app/frontend/dist/
+
+# Runtime logs
+app/.run-logs/
+
+# Environment / secrets
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

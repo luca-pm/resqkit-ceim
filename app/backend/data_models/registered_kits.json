@@ -1,0 +1,39 @@
+{
+    "title": "registered_kits",
+    "type": "object",
+    "description": "A first-aid kit the user owns, used to pre-load the expected inventory for camera recognition and manual selection.",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Autoincrement primary key"
+        },
+        "kit_type": {
+            "type": "string",
+            "description": "car | office | maritime | mountain"
+        },
+        "label": {
+            "type": "string",
+            "description": "User friendly name of the kit"
+        },
+        "location_note": {
+            "type": "string",
+            "description": "Where the kit is stored"
+        },
+        "contents": {
+            "type": "string",
+            "description": "Comma separated item codes present in this kit"
+        },
+        "missing_items": {
+            "type": "string",
+            "description": "Comma separated item codes flagged missing or expired"
+        },
+        "last_checked": {
+            "type": "string",
+            "description": "ISO date of the last inventory check"
+        }
+    },
+    "required": [
+        "kit_type",
+        "label"
+    ]
+}

@@ -1,0 +1,85 @@
+{
+    "title": "incident_records",
+    "type": "object",
+    "description": "Optional, explicitly user-archived incident record. Local-first by default; a row exists only when the user chooses to archive.",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Autoincrement primary key"
+        },
+        "context_type": {
+            "type": "string",
+            "description": "road | office | maritime | mountain | other"
+        },
+        "occurred_at": {
+            "type": "string",
+            "description": "ISO timestamp when the incident started"
+        },
+        "location_summary": {
+            "type": "string",
+            "description": "Plain-text location hint entered by the user"
+        },
+        "latitude": {
+            "type": "number",
+            "description": "GNSS latitude, 0 when not captured"
+        },
+        "longitude": {
+            "type": "number",
+            "description": "GNSS longitude, 0 when not captured"
+        },
+        "location_accuracy": {
+            "type": "number",
+            "description": "GNSS accuracy in meters"
+        },
+        "victim_count": {
+            "type": "integer",
+            "description": "Reported number of victims"
+        },
+        "triage_summary": {
+            "type": "string",
+            "description": "JSON string of triage answers"
+        },
+        "hazards": {
+            "type": "string",
+            "description": "Comma separated hazard codes"
+        },
+        "kit_items": {
+            "type": "string",
+            "description": "Comma separated confirmed kit item codes"
+        },
+        "procedure_id": {
+            "type": "string",
+            "description": "Identifier of the guided procedure followed"
+        },
+        "interventions": {
+            "type": "string",
+            "description": "JSON string of completed steps with timestamps"
+        },
+        "includes_health_data": {
+            "type": "boolean",
+            "description": "Whether the archived brief contains special-category health data"
+        },
+        "called_112": {
+            "type": "string",
+            "description": "called | already_called | not_confirmed"
+        },
+        "brief_text": {
+            "type": "string",
+            "description": "Rendered rescuer handoff brief"
+        },
+        "content_pack_version": {
+            "type": "string",
+            "description": "Version of the knowledge pack used"
+        },
+        "retention_choice": {
+            "type": "string",
+            "description": "session | 24h | 7d"
+        }
+    },
+    "required": [
+        "context_type",
+        "occurred_at",
+        "victim_count",
+        "called_112"
+    ]
+}

@@ -1,0 +1,157 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 25 30% 95%;
+    --foreground: 25 60% 15%;
+
+    --card: 25 30% 92%;
+    --card-foreground: 25 60% 15%;
+
+    --popover: 25 30% 92%;
+    --popover-foreground: 25 60% 15%;
+
+    --primary: 18 60% 45%;
+    --primary-foreground: 25 30% 98%;
+
+    --secondary: 21.95 43.16% 81.37%;
+    --secondary-foreground: 25 30% 98%;
+
+    --muted: 25 20% 88%;
+    --muted-foreground: 25 10% 45%;
+
+    --accent: 80 20% 90%;
+    --accent-foreground: 80 30% 20%;
+
+    --destructive: 10 80% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 25 20% 80%;
+    --input: 25 20% 80%;
+    --ring: 18 60% 45%;
+
+    --radius: 2rem;
+    --spacing: 0.3rem;
+    --tracking-normal: -0.01em;
+
+    --font-sans: 'Fraunces', serif;
+    --font-serif: 'Fraunces', serif;
+    --font-mono: 'Fira Code', monospace;
+
+    --chart-1: 18 60% 45%;
+    --chart-2: 80 20% 30%;
+    --chart-3: 35 50% 60%;
+    --chart-4: 160 20% 40%;
+    --chart-5: 25 10% 60%;
+
+    --sidebar: 25 30% 90%;
+    --sidebar-background: 25 30% 90%;
+    --sidebar-foreground: 25 60% 15%;
+    --sidebar-primary: 18 60% 45%;
+    --sidebar-primary-foreground: 25 30% 98%;
+    --sidebar-accent: 25 20% 85%;
+    --sidebar-accent-foreground: 18 60% 40%;
+    --sidebar-border: 25 20% 85%;
+    --sidebar-ring: 18 60% 45%;
+
+    --shadow-2xs: 0px 2px 4px 0px hsl(25 60% 10% / 0.05);
+    --shadow-xs: 0px 4px 8px 0px hsl(25 60% 10% / 0.08);
+    --shadow-sm: 0px 6px 12px -2px hsl(25 60% 10% / 0.12);
+    --shadow: 0px 10px 20px -5px hsl(25 60% 10% / 0.15);
+    --shadow-md: 0px 15px 30px -10px hsl(25 60% 10% / 0.2);
+    --shadow-lg: 0px 20px 40px -15px hsl(25 60% 10% / 0.25);
+    --shadow-xl: 0px 30px 60px -20px hsl(25 60% 10% / 0.3);
+    --shadow-2xl: 0px 40px 80px -25px hsl(25 60% 10% / 0.35);
+  }
+
+  .dark {
+    --background: 25 20% 10%;
+    --foreground: 25 20% 90%;
+
+    --card: 25 20% 13%;
+    --card-foreground: 25 20% 90%;
+
+    --popover: 25 20% 13%;
+    --popover-foreground: 25 20% 90%;
+
+    --primary: 18.05 57.58% 54.71%;
+    --primary-foreground: 25 20% 5%;
+
+    --secondary: 29.58 56.8% 24.51%;
+    --secondary-foreground: 25 20% 95%;
+
+    --muted: 25 10% 18%;
+    --muted-foreground: 25 10% 60%;
+
+    --accent: 18 60% 20%;
+    --accent-foreground: 18 60% 80%;
+
+    --destructive: 10 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 25 15% 20%;
+    --input: 25 15% 20%;
+    --ring: 18 60% 60%;
+
+    --chart-1: 18 60% 60%;
+    --chart-2: 80 20% 40%;
+    --chart-3: 35 50% 65%;
+    --chart-4: 160 20% 50%;
+    --chart-5: 25 10% 40%;
+
+    --sidebar: 25 20% 8%;
+    --sidebar-background: 25 20% 8%;
+    --sidebar-foreground: 25 20% 90%;
+    --sidebar-primary: 18 60% 60%;
+    --sidebar-primary-foreground: 25 20% 5%;
+    --sidebar-accent: 18 60% 20%;
+    --sidebar-accent-foreground: 18 60% 80%;
+    --sidebar-border: 25 15% 15%;
+    --sidebar-ring: 18 60% 60%;
+
+    --shadow-2xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.4);
+    --shadow-xs: 0px 4px 8px 0px hsl(0 0% 0% / 0.45);
+    --shadow-sm: 0px 8px 16px -4px hsl(0 0% 0% / 0.5);
+    --shadow: 0px 12px 24px -8px hsl(0 0% 0% / 0.5);
+    --shadow-md: 0px 20px 40px -12px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0px 30px 60px -20px hsl(0 0% 0% / 0.6);
+    --shadow-xl: 0px 40px 80px -25px hsl(0 0% 0% / 0.65);
+    --shadow-2xl: 0px 50px 100px -30px hsl(0 0% 0% / 0.7);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    letter-spacing: var(--tracking-normal);
+    font-kerning: normal;
+    text-wrap: pretty;
+  }
+
+  h1 {
+    @apply text-3xl font-bold leading-tight tracking-tight;
+    text-wrap: balance;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold leading-snug;
+    text-wrap: balance;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
