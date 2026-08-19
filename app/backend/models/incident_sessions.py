@@ -11,15 +11,20 @@ class IncidentSession(Base):
 
     Anonymous by design — the emergency wizard has no login gate, so a session
     is addressed by an unguessable UUID rather than tied to a user account.
-    Not yet written to by the frontend: this is foundational plumbing only,
-    kept separate from the local-first incident flow until data-sharing is an
-    explicit, separately-approved decision.
+    Only written to when the frontend's "Real data mode" setting is on
+    (see app/frontend/src/lib/institutionalActions.ts) — kept separate from
+    the local-first incident flow by default, since sending real incident
+    data to a live session is an explicit, separately-approved opt-in.
     """
 
     __tablename__ = "incident_sessions"
     __table_args__ = {"extend_existing": True}
 
     id = Column(String, primary_key=True, default=lambda: uuid.uuid4().hex, nullable=False)
+    # Short, human-typeable pairing code for the ISU dashboard demo (diagram:
+    # a second user enters this to watch the session live). The `id` above is
+    # a 32-char UUID and deliberately unsuitable for a person to read aloud.
+    join_code = Column(String, unique=True, index=True, nullable=True)
     status = Column(String, nullable=False, default="active")  # active | terminated
     context_type = Column(String, nullable=True)
     called_112 = Column(String, nullable=True)  # not_confirmed | called | already_called

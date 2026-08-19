@@ -79,7 +79,8 @@ const Emergency: React.FC = () => {
   const [locating, setLocating] = useState(false);
   const [testingVoiceChannel, setTestingVoiceChannel] = useState(false);
 
-  const onSessionId = (id: string) => updateIncident({ backendSessionId: id });
+  const onSession = (id: string, code: string | null) =>
+    updateIncident({ backendSessionId: id, sessionCode: code });
 
   useEffect(() => {
     if (!ready) return;
@@ -154,7 +155,10 @@ const Emergency: React.FC = () => {
                 onClick={() => {
                   updateIncident({ context: ctx.id });
                   updateSettings({ lastContext: ctx.id });
-                  void ensureSession(incident, settings.realDataMode, logInstitutional, onSessionId);
+                  // updateIncident is async (React state), so read incident.context
+                  // from this closure would still see the pre-update value — pass
+                  // the new context explicitly instead of relying on stale state.
+                  void ensureSession({ ...incident, context: ctx.id }, settings.realDataMode, logInstitutional, onSession);
                   setStage('call');
                 }}
                 className="flex items-center gap-3 rounded-md border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
@@ -252,7 +256,7 @@ const Emergency: React.FC = () => {
               onClick={() => {
                 updateIncident({ called112: 'called' });
                 toast.success('Marked as called. Stay on the line with the operator.');
-                void connectNg112(incident, settings.realDataMode, 'called', logInstitutional, onSessionId);
+                void connectNg112(incident, settings.realDataMode, 'called', logInstitutional, onSession);
               }}
             >
               <Phone className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -270,7 +274,7 @@ const Emergency: React.FC = () => {
                 settings.realDataMode,
                 'already_called',
                 logInstitutional,
-                onSessionId,
+                onSession,
               );
               setStage('triage');
             }}
@@ -286,6 +290,30 @@ const Emergency: React.FC = () => {
             If nobody has called, the red banner stays on screen for the whole session until you do.
           </p>
         </div>
+
+        {incident.backendSessionId && (
+          <Card className="border-dashed">
+            <CardContent className="space-y-1.5 p-4">
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                <Radio className="h-4 w-4 text-primary" aria-hidden="true" />
+                ISU dashboard pairing code
+              </p>
+              {incident.sessionCode ? (
+                <>
+                  <p className="font-mono text-2xl tracking-widest">{incident.sessionCode}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Enter this code on the ISU dashboard to watch this incident live.
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Simulated — no dashboard can connect. Turn on Real data mode in Settings to get a
+                  real pairing code.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-dashed">
           <CardContent className="space-y-2 p-4">
@@ -309,7 +337,7 @@ const Emergency: React.FC = () => {
                     incident,
                     settings.realDataMode,
                     logInstitutional,
-                    onSessionId,
+                    onSession,
                   );
                 } finally {
                   setTestingVoiceChannel(false);
@@ -343,7 +371,7 @@ const Emergency: React.FC = () => {
         type="button"
         onClick={() => {
           updateIncident({ [field]: value });
-          void logTriageAnswer(incident, settings.realDataMode, field, value, logInstitutional, onSessionId);
+          void logTriageAnswer(incident, settings.realDataMode, field, value, logInstitutional, onSession);
         }}
         aria-pressed={incident[field] === value}
         className={`flex-1 rounded-md border p-3 text-sm font-medium transition-colors ${

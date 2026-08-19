@@ -244,8 +244,8 @@ const Handoff: React.FC = () => {
               if (!incident) return;
               setBuildingNgPayload(true);
               try {
-                await buildNgProtocolPayload(incident, settings.realDataMode, logInstitutional, (id) =>
-                  updateIncident({ backendSessionId: id }),
+                await buildNgProtocolPayload(incident, settings.realDataMode, logInstitutional, (id, code) =>
+                  updateIncident({ backendSessionId: id, sessionCode: code }),
                 );
                 toast.success('Logged to the institutional actions trace.');
               } finally {

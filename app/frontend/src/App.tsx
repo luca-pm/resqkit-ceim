@@ -17,6 +17,7 @@ import Learn from './pages/Learn';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard';
 // MODULE_IMPORTS_START
 // MODULE_IMPORTS_END
 
@@ -36,6 +37,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
     <Route path="/settings" element={<Settings />} />
+    <Route path="/dashboard" element={<Dashboard />} />
     {/* MODULE_ROUTES_START */}
     {/* MODULE_ROUTES_END */}
   </Routes>

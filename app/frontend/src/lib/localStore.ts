@@ -88,6 +88,8 @@ export interface IncidentState {
   context: ContextId | null;
   /** Backend incident_sessions id — only ever set while Real data mode is on. */
   backendSessionId: string | null;
+  /** Short pairing code for the ISU dashboard demo. Only real (dashboard-connectable) when backendSessionId is a real (non "sim-") id. */
+  sessionCode: string | null;
   called112: 'called' | 'already_called' | 'not_confirmed';
   latitude: number | null;
   longitude: number | null;
@@ -143,6 +145,7 @@ export const newIncident = (): IncidentState => ({
   startedAt: new Date().toISOString(),
   context: null,
   backendSessionId: null,
+  sessionCode: null,
   called112: 'not_confirmed',
   latitude: null,
   longitude: null,

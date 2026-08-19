@@ -23,6 +23,8 @@ import { client } from './apiClient';
 import { IncidentState, InstitutionalLogEntry } from './localStore';
 
 type LogFn = (entry: Omit<InstitutionalLogEntry, 'id' | 'at'>) => void;
+/** Called whenever a session is (re)confirmed, with its id and — real mode only — its ISU-dashboard pairing code. */
+type SessionFn = (id: string, code: string | null) => void;
 
 const fakeId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -45,7 +47,7 @@ export async function ensureSession(
   incident: IncidentState,
   realDataMode: boolean,
   log: LogFn,
-  onSessionId: (id: string) => void,
+  onSession: SessionFn,
 ): Promise<string | null> {
   const cached = incident.backendSessionId;
   // A cached id from a prior simulated run (sim-...) is not a real backend
@@ -56,19 +58,21 @@ export async function ensureSession(
   if (!realDataMode) {
     const id = fakeId('sim-session');
     log({ action: 'session.create', mode: 'simulated', detail: `Simulated session ${id} (no data sent)`, ok: true });
-    onSessionId(id);
+    // No join code in simulated mode: nothing on the dashboard could ever
+    // pair with it, so showing one would be actively misleading.
+    onSession(id, null);
     return id;
   }
 
   const id = await safely('session.create', 'real', log, async () => {
-    const res = await client.apiCall.invoke<{ id: string }>({
+    const res = await client.apiCall.invoke<{ id: string; join_code: string | null }>({
       url: '/api/v1/incident_sessions',
       method: 'POST',
       data: { context_type: incident.context ?? undefined },
     });
-    return { detail: `Created backend session ${res.data.id}`, result: res.data.id };
+    onSession(res.data.id, res.data.join_code ?? null);
+    return { detail: `Created backend session ${res.data.id} (join code ${res.data.join_code})`, result: res.data.id };
   });
-  if (id) onSessionId(id);
   return id;
 }
 
@@ -77,9 +81,9 @@ export async function connectNg112(
   realDataMode: boolean,
   status: 'called' | 'already_called',
   log: LogFn,
-  onSessionId: (id: string) => void,
+  onSession: SessionFn,
 ): Promise<void> {
-  const sessionId = await ensureSession(incident, realDataMode, log, onSessionId);
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
   if (!sessionId) return;
 
   if (!realDataMode) {
@@ -109,9 +113,9 @@ export async function logTriageAnswer(
   field: string,
   value: string,
   log: LogFn,
-  onSessionId: (id: string) => void,
+  onSession: SessionFn,
 ): Promise<void> {
-  const sessionId = await ensureSession(incident, realDataMode, log, onSessionId);
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
   if (!sessionId) return;
 
   if (!realDataMode) {
@@ -134,9 +138,9 @@ export async function testInstitutionalVoiceChannel(
   incident: IncidentState,
   realDataMode: boolean,
   log: LogFn,
-  onSessionId: (id: string) => void,
+  onSession: SessionFn,
 ): Promise<void> {
-  const sessionId = await ensureSession(incident, realDataMode, log, onSessionId);
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
   if (!sessionId) return;
 
   if (!realDataMode) {
@@ -195,9 +199,9 @@ export async function buildNgProtocolPayload(
   incident: IncidentState,
   realDataMode: boolean,
   log: LogFn,
-  onSessionId: (id: string) => void,
+  onSession: SessionFn,
 ): Promise<void> {
-  const sessionId = await ensureSession(incident, realDataMode, log, onSessionId);
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
   if (!sessionId) return;
 
   if (!realDataMode) {

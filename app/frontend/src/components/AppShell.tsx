@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Phone, WifiOff, ShieldAlert, LifeBuoy, Settings as SettingsIcon } from 'lucide-react';
+import { Phone, WifiOff, ShieldAlert, LifeBuoy, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncident } from '@/lib/incidentContext';
 import { CONTENT_PACK_VERSION } from '@/lib/knowledge';
@@ -42,6 +42,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 Offline
               </span>
             )}
+            <Button asChild variant="ghost" size="sm" title="ISU dashboard (demo)">
+              <Link to="/dashboard">
+                <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
             <Button asChild variant="ghost" size="sm" title="Settings">
               <Link to="/settings">
                 <SettingsIcon className="h-4 w-4" aria-hidden="true" />

@@ -17,11 +17,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from services import session_broadcast
 from services.incident_sessions import IncidentSessionService
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ class EventResponse(BaseModel):
 
 class SessionResponse(BaseModel):
     id: str
+    join_code: Optional[str] = None
     status: str
     context_type: Optional[str] = None
     called_112: Optional[str] = None
@@ -83,6 +85,16 @@ async def get_session(session_id: str, db: AsyncSession = Depends(get_db)):
     session = await service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Incident session not found")
+    return session
+
+
+@router.get("/by_code/{join_code}", response_model=SessionResponse)
+async def get_session_by_code(join_code: str, db: AsyncSession = Depends(get_db)):
+    """Resolve a short join code to its session ('dashboard enters the code the app showed')."""
+    service = IncidentSessionService(db)
+    session = await service.get_session_by_code(join_code)
+    if not session:
+        raise HTTPException(status_code=404, detail="No session found for that code")
     return session
 
 
@@ -114,3 +126,61 @@ async def terminate_session(session_id: str, db: AsyncSession = Depends(get_db))
     if not session:
         raise HTTPException(status_code=404, detail="Incident session not found")
     return session
+
+
+@router.websocket("/{session_id}/watch")
+async def watch_session(websocket: WebSocket, session_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Spectator channel for the ISU dashboard demo: watch a session's log live.
+
+    Distinct from /stream (the end-user side pushing audio and receiving
+    transcripts) - this is a read-only feed. On connect, sends the current
+    event list as a snapshot; after that, pushes each new event the instant
+    services.incident_sessions.append_event publishes it, no polling.
+    """
+    service = IncidentSessionService(db)
+    await websocket.accept()
+
+    session = await service.get_session(session_id)
+    if not session:
+        await websocket.send_json({"type": "error", "message": "Incident session not found"})
+        await websocket.close(code=4404)
+        return
+
+    await websocket.send_json(
+        {
+            "type": "snapshot",
+            "session": {
+                "id": session.id,
+                "join_code": session.join_code,
+                "status": session.status,
+                "context_type": session.context_type,
+                "called_112": session.called_112,
+            },
+            "events": [
+                {
+                    "id": e.id,
+                    "session_id": e.session_id,
+                    "event_type": e.event_type,
+                    "payload": e.payload,
+                    "created_at": e.created_at.isoformat() if e.created_at else None,
+                }
+                for e in session.events
+            ],
+        }
+    )
+
+    queue = session_broadcast.subscribe(session_id)
+    try:
+        while True:
+            event = await queue.get()
+            await websocket.send_json({"type": "event", "event": event})
+    except (WebSocketDisconnect, RuntimeError, ConnectionResetError):
+        # Expected once the dashboard tab closes / connection drops - this is
+        # a pure server-push socket, so a disconnect is only ever discovered
+        # on the next send, not via a receive() call.
+        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"Watch websocket error for session {session_id}: {exc}", exc_info=True)
+    finally:
+        session_broadcast.unsubscribe(session_id, queue)
