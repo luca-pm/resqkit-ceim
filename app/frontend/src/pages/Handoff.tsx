@@ -9,7 +9,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Loader2, Radio, Share2, Sparkles, Volume2 } from 'lucide-react';
+import { Copy, Loader2, Radio, RotateCcw, Share2, Sparkles, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,13 +20,22 @@ import { toast } from 'sonner';
 import { client } from '@/lib/api';
 import { useIncident } from '@/lib/incidentContext';
 import { buildBrief } from '@/lib/brief';
-import { buildNgProtocolPayload } from '@/lib/institutionalActions';
+import { buildNgProtocolPayload, terminateInstitutionalSession } from '@/lib/institutionalActions';
 import { RESPONDER_PRIORITIES } from '@/lib/knowledge';
 import { profileHasHealthData } from '@/lib/localStore';
 
 const Handoff: React.FC = () => {
   const navigate = useNavigate();
-  const { incident, profile, consent, updateIncident, settings, logInstitutional } = useIncident();
+  const {
+    incident,
+    profile,
+    consent,
+    updateIncident,
+    settings,
+    logInstitutional,
+    discardIncident,
+    startIncident,
+  } = useIncident();
   const [includeHealth, setIncludeHealth] = useState(false);
   const [includeReporter, setIncludeReporter] = useState(false);
   const [spoken, setSpoken] = useState('');
@@ -75,6 +84,14 @@ const Handoff: React.FC = () => {
       }
     }
     copyBrief();
+  };
+
+  const startNewIncident = () => {
+    if (incident) void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
+    discardIncident();
+    startIncident();
+    toast.success('New incident started. The previous one was discarded without review.');
+    navigate('/emergency');
   };
 
   const narrate = async () => {
@@ -263,9 +280,24 @@ const Handoff: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Button size="lg" variant="secondary" className="w-full" onClick={() => navigate('/review')}>
-        Incident over — review and delete data
-      </Button>
+      <Card className="border-dashed">
+        <CardContent className="space-y-3 p-4">
+          <p className="font-semibold">Done here?</p>
+          <p className="text-sm text-muted-foreground">
+            Review lets you choose what to keep before this incident is cleared. Starting a new
+            incident discards this one right away, with no review step.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button size="lg" variant="secondary" className="flex-1" onClick={() => navigate('/review')}>
+              Review and delete data
+            </Button>
+            <Button size="lg" variant="outline" className="flex-1" onClick={startNewIncident}>
+              <RotateCcw className="mr-2 h-5 w-5" aria-hidden="true" />
+              Start a new incident
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

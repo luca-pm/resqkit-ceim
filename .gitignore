@@ -23,3 +23,4 @@ app/.run-logs/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
