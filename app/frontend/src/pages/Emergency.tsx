@@ -307,8 +307,8 @@ const Emergency: React.FC = () => {
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Simulated — no dashboard can connect. Turn on Real data mode in Settings to get a
-                  real pairing code.
+                  Simulated in browser — no dashboard can connect. Turn on Local backend mode in
+                  Settings to get a real pairing code (still never sent beyond this machine).
                 </p>
               )}
             </CardContent>
@@ -324,7 +324,9 @@ const Emergency: React.FC = () => {
             <p className="text-xs text-muted-foreground">
               Fires a passive-voice-recognition request and a transcript websocket test, logged to
               Settings → Institutional actions trace.{' '}
-              {settings.realDataMode ? 'Real data mode is on.' : 'Currently simulated — nothing is sent.'}
+              {settings.realDataMode
+                ? 'Local backend mode is on (this machine only).'
+                : 'Currently simulated in browser — nothing is sent, not even locally.'}
             </p>
             <Button
               size="sm"

@@ -234,7 +234,7 @@ const Handoff: React.FC = () => {
             Previews the PIDF-LO + RFC 7852-style payload ResQKit would eventually hand to an
             authorized NG112 channel. Proof-of-concept only — never transmitted anywhere; logged to
             Settings → Institutional actions trace.{' '}
-            {settings.realDataMode ? 'Real data mode is on.' : 'Currently simulated.'}
+            {settings.realDataMode ? 'Local backend mode is on (this machine only).' : 'Currently simulated in browser.'}
           </p>
           <Button
             size="sm"
