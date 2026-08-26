@@ -32,6 +32,7 @@ import {
   saveSettings,
   wipeAllLocalData,
 } from './localStore';
+import { applyUiLanguage } from './i18n';
 
 interface IncidentContextValue {
   ready: boolean;
@@ -69,7 +70,9 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     setConsent(loadConsent());
     setProfile(loadProfile());
-    setSettings(loadSettings());
+    const loadedSettings = loadSettings();
+    setSettings(loadedSettings);
+    applyUiLanguage(loadedSettings.uiLanguage);
     setIncident(loadIncident());
     setInstitutionalLog(loadInstitutionalLog());
     setReady(true);
@@ -111,6 +114,7 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSettings((prev) => {
       const next = { ...prev, ...patch };
       saveSettings(next);
+      if (patch.uiLanguage !== undefined) applyUiLanguage(patch.uiLanguage);
       return next;
     });
   }, []);

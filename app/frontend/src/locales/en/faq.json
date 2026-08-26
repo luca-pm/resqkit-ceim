@@ -1,0 +1,21 @@
+{
+  "title": "FAQ",
+  "items": [
+    {
+      "q": "Does ResQKit call 112 for me?",
+      "a": "No. The dialer button on every screen opens your phone's own call to 112 — that is the only real emergency channel in this app. ResQKit itself never contacts emergency services automatically."
+    },
+    {
+      "q": "How does sending data to emergency operators work?",
+      "a": "By default everything is simulated in your browser and nothing is sent anywhere. If you explicitly turn on local backend mode in Settings, actions are logged to this app's own local server on this machine only — still not a real channel to 112, ISU, or any authority. See Settings for the full explanation."
+    },
+    {
+      "q": "Is my data uploaded anywhere?",
+      "a": "No. Your Safety Profile and incident data stay in this browser (or this device) unless you explicitly choose to archive an incident to your account."
+    },
+    {
+      "q": "How do I contact support?",
+      "a": "Use the Contact screen — it opens your email app addressed to our support team."
+    }
+  ]
+}

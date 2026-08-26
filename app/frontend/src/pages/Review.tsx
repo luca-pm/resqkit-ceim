@@ -166,7 +166,7 @@ const Review: React.FC = () => {
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="secondary">{incident.victimCount} injured</Badge>
                 {incident.hazards.length > 0 && (
-                  <Badge variant="destructive">{incident.hazards.length} hazard(s)</Badge>
+                  <Badge variant="emergency">{incident.hazards.length} hazard(s)</Badge>
                 )}
                 {incident.kitItems.length > 0 && (
                   <Badge variant="secondary">{incident.kitItems.length} kit item(s)</Badge>

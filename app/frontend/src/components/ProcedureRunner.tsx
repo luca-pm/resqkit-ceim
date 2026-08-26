@@ -121,10 +121,10 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
         />
       </div>
 
-      <Card className={step.critical ? 'border-destructive/50' : undefined}>
+      <Card className={step.critical ? 'border-emergency/50' : undefined}>
         <CardContent className="space-y-3 p-5">
           {step.critical && (
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-destructive">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emergency">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
               Critical step
             </p>
@@ -168,7 +168,7 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 {metronome.running && (
-                  <span className="h-3 w-3 rounded-full bg-destructive animate-pulse-ring" />
+                  <span className="h-3 w-3 rounded-full bg-emergency animate-pulse-ring" />
                 )}
                 <Button
                   size="sm"

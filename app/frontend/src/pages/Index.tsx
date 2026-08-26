@@ -68,8 +68,8 @@ const Index: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-5">
-        <p className="text-sm font-semibold uppercase tracking-wide text-destructive">
+      <section className="rounded-lg border border-emergency/30 bg-emergency/5 p-5">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emergency">
           If someone is hurt, call first
         </p>
         <h1 className="mt-2">Call 112 before anything else</h1>
@@ -78,7 +78,7 @@ const Index: React.FC = () => {
           phone and network deliver caller location to the emergency service under EU rules.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button asChild size="lg" variant="destructive" className="flex-1">
+          <Button asChild size="lg" variant="emergency" className="flex-1">
             <a href="tel:112">
               <Phone className="mr-2 h-5 w-5" aria-hidden="true" />
               Call 112

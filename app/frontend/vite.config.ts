@@ -66,6 +66,11 @@ export default defineConfig(({ command }) => {
     server: {
       host: '0.0.0.0', // Listen on all network interfaces.
       port: parseInt(process.env.VITE_PORT || '3000'),
+      // Vite rejects requests whose Host header isn't recognized, as a
+      // DNS-rebinding guard. Quick-tunnel demo URLs (cloudflared) are random
+      // *.trycloudflare.com subdomains each run, so allow the whole suffix
+      // rather than hardcoding one session's hostname.
+      allowedHosts: ['.trycloudflare.com'],
       proxy: {
         '/api': {
           target: `http://localhost:${process.env.BACKEND_PORT || '8000'}`,

@@ -1,0 +1,18 @@
+{
+  "title": "Tutorials",
+  "videoTab": "Video",
+  "textTab": "Text",
+  "videoComingSoon": "Video coming soon — read the text guide below.",
+  "items": [
+    {
+      "id": "how-to-use",
+      "title": "How to use ResQKit",
+      "description": "A walkthrough of the emergency wizard: calling 112, triage, hazards, your kit, and guided steps."
+    },
+    {
+      "id": "isu-form",
+      "title": "How to fill out the form sent to ISU",
+      "description": "What the NG protocol payload builder does, and why it's a proof-of-concept, never actually transmitted to a real authority."
+    }
+  ]
+}

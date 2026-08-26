@@ -253,7 +253,7 @@ const Emergency: React.FC = () => {
         </Card>
 
         <div className="space-y-2">
-          <Button asChild size="lg" variant="destructive" className="w-full">
+          <Button asChild size="lg" variant="emergency" className="w-full">
             <a
               href="tel:112"
               onClick={() => {
@@ -382,7 +382,7 @@ const Emergency: React.FC = () => {
         className={`flex-1 rounded-md border p-3 text-sm font-medium transition-colors ${
           incident[field] === value
             ? danger
-              ? 'border-destructive bg-destructive text-destructive-foreground'
+              ? 'border-emergency bg-emergency text-emergency-foreground'
               : 'border-primary bg-primary text-primary-foreground'
             : 'border-border bg-card hover:bg-accent'
         }`}
@@ -425,9 +425,9 @@ const Emergency: React.FC = () => {
         </Card>
 
         {incident.breathing === 'no' && (
-          <Card className="border-destructive">
+          <Card className="border-emergency">
             <CardContent className="p-4">
-              <p className="flex items-start gap-2 text-sm font-semibold text-destructive">
+              <p className="flex items-start gap-2 text-sm font-semibold text-emergency">
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 Not breathing means CPR now. Skip the rest of the questions.
               </p>
@@ -559,12 +559,12 @@ const Emergency: React.FC = () => {
                 onClick={() => toggle(h.code)}
                 aria-pressed={active}
                 className={`rounded-md border p-3 text-left transition-colors ${
-                  active ? 'border-destructive bg-destructive/10' : 'border-border bg-card hover:bg-accent'
+                  active ? 'border-emergency bg-emergency/10' : 'border-border bg-card hover:bg-accent'
                 }`}
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="font-medium">{h.label}</span>
-                  <Badge variant={active ? 'destructive' : 'secondary'}>{h.family}</Badge>
+                  <Badge variant={active ? 'emergency' : 'secondary'}>{h.family}</Badge>
                 </span>
                 {active && <span className="mt-1 block text-sm">{h.warning}</span>}
               </button>
@@ -594,9 +594,9 @@ const Emergency: React.FC = () => {
         )}
 
         {blocking.length > 0 && (
-          <Card className="border-destructive">
+          <Card className="border-emergency">
             <CardContent className="p-4">
-              <p className="flex items-start gap-2 text-sm font-semibold text-destructive">
+              <p className="flex items-start gap-2 text-sm font-semibold text-emergency">
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 Do not approach. Stay back, keep others back, and report this to 112.
               </p>

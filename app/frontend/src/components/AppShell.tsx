@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Phone, WifiOff, ShieldAlert, LifeBuoy, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncident } from '@/lib/incidentContext';
@@ -16,6 +17,7 @@ import { CONTENT_PACK_VERSION } from '@/lib/knowledge';
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { incident, online } = useIncident();
   const location = useLocation();
+  const { t } = useTranslation('common');
 
   const showCallBanner =
     Boolean(incident) &&
@@ -52,7 +54,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <SettingsIcon className="h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
-            <Button asChild variant="destructive" size="sm">
+            <Button asChild variant="emergency" size="sm">
               <a href="tel:112">
                 <Phone className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 112
@@ -63,16 +65,16 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       {showCallBanner && (
-        <div className="border-b border-destructive/40 bg-destructive/10">
+        <div className="border-b border-emergency/40 bg-emergency/10">
           <div className="mx-auto flex w-full max-w-screen-md flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-start gap-2 text-sm text-foreground">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-emergency" aria-hidden="true" />
               <span>
                 <strong className="font-semibold">112 not confirmed.</strong> ResQKit does not contact
                 emergency services for you.
               </span>
             </p>
-            <Button asChild variant="destructive" size="sm" className="shrink-0">
+            <Button asChild variant="emergency" size="sm" className="shrink-0">
               <a href="tel:112">Call 112 now</a>
             </Button>
           </div>
@@ -87,7 +89,18 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ResQKit provides information and first-aid orientation. It is not a medical device, not
             legal advice, and never a substitute for calling 112.
           </p>
-          <p className="mt-1 font-mono">Content pack {CONTENT_PACK_VERSION}</p>
+          <div className="mt-2 flex flex-wrap gap-3">
+            <Link to="/tutorials" className="underline-offset-2 hover:underline">
+              {t('nav.tutorials')}
+            </Link>
+            <Link to="/faq" className="underline-offset-2 hover:underline">
+              {t('nav.faq')}
+            </Link>
+            <Link to="/contact" className="underline-offset-2 hover:underline">
+              {t('nav.contact')}
+            </Link>
+          </div>
+          <p className="mt-2 font-mono">Content pack {CONTENT_PACK_VERSION}</p>
         </div>
       </footer>
     </div>

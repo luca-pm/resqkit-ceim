@@ -11,7 +11,9 @@
  */
 
 import React from 'react';
-import { AlertTriangle, ListTree, RadioTower, Trash2 } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Globe, ListTree, Moon, RadioTower, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +37,8 @@ const ACTION_LABELS: Record<string, string> = {
 
 const Settings: React.FC = () => {
   const { settings, updateSettings, institutionalLog, clearInstitutionalLog } = useIncident();
+  const { theme, setTheme } = useTheme();
+  const { t, i18n } = useTranslation('common');
 
   const clearLog = () => {
     clearInstitutionalLog();
@@ -43,6 +47,45 @@ const Settings: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">{t('appearance.title')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+            <div className="flex items-center gap-2">
+              <Moon className="h-4 w-4 text-primary" aria-hidden="true" />
+              <p className="text-sm font-medium">{t('appearance.darkMode')}</p>
+            </div>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={(checked) => {
+                setTheme(checked ? 'dark' : 'light');
+                updateSettings({ themePreference: checked ? 'dark' : 'light' });
+              }}
+              aria-label="Toggle dark mode"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
+              <p className="text-sm font-medium">{t('appearance.language')}</p>
+            </div>
+            <div className="flex gap-1.5">
+              {(['en', 'ro'] as const).map((lang) => (
+                <Button
+                  key={lang}
+                  size="sm"
+                  variant={i18n.language.startsWith(lang) ? 'default' : 'secondary'}
+                  onClick={() => updateSettings({ uiLanguage: lang })}
+                >
+                  {lang.toUpperCase()}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div>
         <h1>Settings</h1>
         <p className="mt-2 text-sm text-muted-foreground">

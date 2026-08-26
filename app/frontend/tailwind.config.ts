@@ -54,6 +54,12 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        // The only reserved red — 112 / hazard / critical-step UI. Never used
+        // for generic "delete" actions, which stay on `destructive` (neutral).
+        emergency: {
+          DEFAULT: 'hsl(var(--emergency))',
+          foreground: 'hsl(var(--emergency-foreground))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',

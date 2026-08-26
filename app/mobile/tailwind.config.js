@@ -1,10 +1,12 @@
 /**
- * "Terracotta & Clay" palette, ported from app/frontend/tailwind.config.ts so
- * both apps share the same semantic color names. Values live in
+ * ResQKit brand palette (logo-derived), ported from app/frontend/tailwind.config.ts
+ * so both apps share the same semantic color names. Values live in
  * src/global.css as CSS custom properties, same pattern as the web app.
+ * darkMode is 'class' (not 'media') so Settings' toggle can drive it manually
+ * via nativewind's own useColorScheme/setColorScheme, not just OS preference.
  */
 module.exports = {
-  darkMode: 'media',
+  darkMode: 'class',
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
@@ -31,6 +33,12 @@ module.exports = {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+        },
+        // The only reserved red — 112 / hazard / critical-step UI. Never used
+        // for generic "delete" actions, which stay on `destructive` (neutral).
+        emergency: {
+          DEFAULT: 'hsl(var(--emergency))',
+          foreground: 'hsl(var(--emergency-foreground))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

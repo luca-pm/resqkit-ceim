@@ -1,0 +1,16 @@
+{
+  "title": "Contact",
+  "subtitle": "Ia legătura cu echipa ResQKit.",
+  "email": "support@resqkit.com",
+  "formTitle": "Trimite un mesaj",
+  "name": "Nume",
+  "namePlaceholder": "Nume Prenume",
+  "emailLabel": "Email",
+  "emailPlaceholder": "tu@domeniu.com",
+  "subject": "Subiect",
+  "subjectPlaceholder": "Scrie subiectul mesajului",
+  "message": "Mesaj",
+  "messagePlaceholder": "Scrie aici mesajul...",
+  "send": "Trimite",
+  "sendHint": "Deschide aplicația ta de email, adresată către support@resqkit.com."
+}

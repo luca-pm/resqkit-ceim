@@ -1,3 +1,4 @@
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +19,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
+import FAQ from './pages/FAQ';
+import Contact from './pages/Contact';
+import Tutorials from './pages/Tutorials';
 // MODULE_IMPORTS_START
 // MODULE_IMPORTS_END
 
@@ -38,6 +42,9 @@ const AppRoutes = () => (
     <Route path="/register" element={<Register />} />
     <Route path="/settings" element={<Settings />} />
     <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/faq" element={<FAQ />} />
+    <Route path="/contact" element={<Contact />} />
+    <Route path="/tutorials" element={<Tutorials />} />
     {/* MODULE_ROUTES_START */}
     {/* MODULE_ROUTES_END */}
   </Routes>
@@ -47,6 +54,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     {/* MODULE_PROVIDERS_START */}
     {/* MODULE_PROVIDERS_END */}
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="resqkit.theme.v1">
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
@@ -59,6 +67,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </ThemeProvider>
     {/* MODULE_PROVIDERS_CLOSE */}
   </QueryClientProvider>
 );

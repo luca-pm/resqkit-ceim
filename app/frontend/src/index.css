@@ -7,33 +7,44 @@
 
 @layer base {
   :root {
-    --background: 25 30% 95%;
-    --foreground: 25 60% 15%;
+    /*
+     * ResQKit brand palette, derived from the logo (navy shield, blue spark,
+     * teal wordmark, green tagline) per marketing's Figma handoff. Red is
+     * reserved exclusively for --emergency (112 / hazard / critical-step UI)
+     * — never used for --destructive (generic delete/remove), which is a
+     * neutral navy-slate instead. See the RN migration plan, Section E1.
+     */
+    --background: 210 30% 97%;
+    --foreground: 207 55% 14%;
 
-    --card: 25 30% 92%;
-    --card-foreground: 25 60% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 207 55% 14%;
 
-    --popover: 25 30% 92%;
-    --popover-foreground: 25 60% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 207 55% 14%;
 
-    --primary: 18 60% 45%;
-    --primary-foreground: 25 30% 98%;
+    --primary: 202 74% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 21.95 43.16% 81.37%;
-    --secondary-foreground: 25 30% 98%;
+    --secondary: 176 55% 32%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 25 20% 88%;
-    --muted-foreground: 25 10% 45%;
+    --muted: 210 20% 93%;
+    --muted-foreground: 207 15% 40%;
 
-    --accent: 80 20% 90%;
-    --accent-foreground: 80 30% 20%;
+    --accent: 140 40% 93%;
+    --accent-foreground: 140 45% 20%;
 
-    --destructive: 10 80% 40%;
+    --destructive: 207 20% 32%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 25 20% 80%;
-    --input: 25 20% 80%;
-    --ring: 18 60% 45%;
+    /* The only reserved red — 112 call button, hazard warnings, critical steps. */
+    --emergency: 356 72% 48%;
+    --emergency-foreground: 0 0% 100%;
+
+    --border: 210 20% 85%;
+    --input: 210 20% 85%;
+    --ring: 202 74% 42%;
 
     --radius: 2rem;
     --spacing: 0.3rem;
@@ -43,76 +54,79 @@
     --font-serif: 'Fraunces', serif;
     --font-mono: 'Fira Code', monospace;
 
-    --chart-1: 18 60% 45%;
-    --chart-2: 80 20% 30%;
-    --chart-3: 35 50% 60%;
-    --chart-4: 160 20% 40%;
-    --chart-5: 25 10% 60%;
+    --chart-1: 202 74% 42%;
+    --chart-2: 176 55% 32%;
+    --chart-3: 140 39% 49%;
+    --chart-4: 207 55% 14%;
+    --chart-5: 207 15% 55%;
 
-    --sidebar: 25 30% 90%;
-    --sidebar-background: 25 30% 90%;
-    --sidebar-foreground: 25 60% 15%;
-    --sidebar-primary: 18 60% 45%;
-    --sidebar-primary-foreground: 25 30% 98%;
-    --sidebar-accent: 25 20% 85%;
-    --sidebar-accent-foreground: 18 60% 40%;
-    --sidebar-border: 25 20% 85%;
-    --sidebar-ring: 18 60% 45%;
+    --sidebar: 210 25% 94%;
+    --sidebar-background: 210 25% 94%;
+    --sidebar-foreground: 207 55% 14%;
+    --sidebar-primary: 202 74% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 88%;
+    --sidebar-accent-foreground: 202 74% 35%;
+    --sidebar-border: 210 20% 85%;
+    --sidebar-ring: 202 74% 42%;
 
-    --shadow-2xs: 0px 2px 4px 0px hsl(25 60% 10% / 0.05);
-    --shadow-xs: 0px 4px 8px 0px hsl(25 60% 10% / 0.08);
-    --shadow-sm: 0px 6px 12px -2px hsl(25 60% 10% / 0.12);
-    --shadow: 0px 10px 20px -5px hsl(25 60% 10% / 0.15);
-    --shadow-md: 0px 15px 30px -10px hsl(25 60% 10% / 0.2);
-    --shadow-lg: 0px 20px 40px -15px hsl(25 60% 10% / 0.25);
-    --shadow-xl: 0px 30px 60px -20px hsl(25 60% 10% / 0.3);
-    --shadow-2xl: 0px 40px 80px -25px hsl(25 60% 10% / 0.35);
+    --shadow-2xs: 0px 2px 4px 0px hsl(207 55% 10% / 0.05);
+    --shadow-xs: 0px 4px 8px 0px hsl(207 55% 10% / 0.08);
+    --shadow-sm: 0px 6px 12px -2px hsl(207 55% 10% / 0.12);
+    --shadow: 0px 10px 20px -5px hsl(207 55% 10% / 0.15);
+    --shadow-md: 0px 15px 30px -10px hsl(207 55% 10% / 0.2);
+    --shadow-lg: 0px 20px 40px -15px hsl(207 55% 10% / 0.25);
+    --shadow-xl: 0px 30px 60px -20px hsl(207 55% 10% / 0.3);
+    --shadow-2xl: 0px 40px 80px -25px hsl(207 55% 10% / 0.35);
   }
 
   .dark {
-    --background: 25 20% 10%;
-    --foreground: 25 20% 90%;
+    --background: 207 45% 9%;
+    --foreground: 210 25% 92%;
 
-    --card: 25 20% 13%;
-    --card-foreground: 25 20% 90%;
+    --card: 207 40% 12%;
+    --card-foreground: 210 25% 92%;
 
-    --popover: 25 20% 13%;
-    --popover-foreground: 25 20% 90%;
+    --popover: 207 40% 12%;
+    --popover-foreground: 210 25% 92%;
 
-    --primary: 18.05 57.58% 54.71%;
-    --primary-foreground: 25 20% 5%;
+    --primary: 202 80% 60%;
+    --primary-foreground: 207 55% 10%;
 
-    --secondary: 29.58 56.8% 24.51%;
-    --secondary-foreground: 25 20% 95%;
+    --secondary: 176 50% 45%;
+    --secondary-foreground: 207 55% 10%;
 
-    --muted: 25 10% 18%;
-    --muted-foreground: 25 10% 60%;
+    --muted: 207 25% 18%;
+    --muted-foreground: 210 15% 65%;
 
-    --accent: 18 60% 20%;
-    --accent-foreground: 18 60% 80%;
+    --accent: 140 30% 20%;
+    --accent-foreground: 140 45% 80%;
 
-    --destructive: 10 80% 50%;
+    --destructive: 207 15% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 25 15% 20%;
-    --input: 25 15% 20%;
-    --ring: 18 60% 60%;
+    --emergency: 356 80% 60%;
+    --emergency-foreground: 0 0% 100%;
 
-    --chart-1: 18 60% 60%;
-    --chart-2: 80 20% 40%;
-    --chart-3: 35 50% 65%;
-    --chart-4: 160 20% 50%;
-    --chart-5: 25 10% 40%;
+    --border: 207 25% 22%;
+    --input: 207 25% 22%;
+    --ring: 202 80% 60%;
 
-    --sidebar: 25 20% 8%;
-    --sidebar-background: 25 20% 8%;
-    --sidebar-foreground: 25 20% 90%;
-    --sidebar-primary: 18 60% 60%;
-    --sidebar-primary-foreground: 25 20% 5%;
-    --sidebar-accent: 18 60% 20%;
-    --sidebar-accent-foreground: 18 60% 80%;
-    --sidebar-border: 25 15% 15%;
-    --sidebar-ring: 18 60% 60%;
+    --chart-1: 202 80% 60%;
+    --chart-2: 176 50% 45%;
+    --chart-3: 140 35% 55%;
+    --chart-4: 210 25% 85%;
+    --chart-5: 207 15% 50%;
+
+    --sidebar: 207 40% 8%;
+    --sidebar-background: 207 40% 8%;
+    --sidebar-foreground: 210 25% 92%;
+    --sidebar-primary: 202 80% 60%;
+    --sidebar-primary-foreground: 207 55% 10%;
+    --sidebar-accent: 207 25% 18%;
+    --sidebar-accent-foreground: 202 80% 75%;
+    --sidebar-border: 207 25% 18%;
+    --sidebar-ring: 202 80% 60%;
 
     --shadow-2xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.4);
     --shadow-xs: 0px 4px 8px 0px hsl(0 0% 0% / 0.45);

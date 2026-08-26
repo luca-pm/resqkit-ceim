@@ -44,10 +44,10 @@ const Consent: React.FC = () => {
         </p>
       </div>
 
-      <Card className="border-destructive/40">
+      <Card className="border-emergency/40">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
+            <AlertTriangle className="h-5 w-5 text-emergency" aria-hidden="true" />
             ResQKit is not an emergency service
           </CardTitle>
         </CardHeader>
@@ -118,7 +118,7 @@ const Consent: React.FC = () => {
           <Check className="mr-2 h-5 w-5" aria-hidden="true" />
           Continue
         </Button>
-        <Button asChild size="lg" variant="destructive" className="flex-1">
+        <Button asChild size="lg" variant="emergency" className="flex-1">
           <a href="tel:112">Skip and call 112</a>
         </Button>
       </div>

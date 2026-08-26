@@ -55,6 +55,14 @@ export interface AppSettings {
    * that data leaves this device (see lib/institutionalActions.ts).
    */
   realDataMode: boolean;
+  /**
+   * UI chrome language — distinct from `SafetyProfile.language` (the
+   * bystander's own spoken language, shown to paramedics). `null` follows
+   * the device/browser locale.
+   */
+  uiLanguage: 'en' | 'ro' | null;
+  /** 'system' follows the OS/browser preference; 'light'/'dark' overrides it. */
+  themePreference: 'system' | 'light' | 'dark';
 }
 
 /** One entry in the institutional-actions trace (see lib/institutionalActions.ts). */
@@ -142,6 +150,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   localCounters: false,
   lastContext: null,
   realDataMode: false,
+  uiLanguage: null,
+  themePreference: 'system',
 };
 
 export const newIncident = (): IncidentState => ({

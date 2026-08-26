@@ -11,50 +11,61 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 
-  /* "Terracotta & Clay" — same values as app/frontend/src/index.css, light mode. */
-  --background: 25 30% 95%;
-  --foreground: 25 60% 15%;
-  --card: 25 30% 92%;
-  --card-foreground: 25 60% 15%;
-  --popover: 25 30% 92%;
-  --popover-foreground: 25 60% 15%;
-  --primary: 18 60% 45%;
-  --primary-foreground: 25 30% 98%;
-  --secondary: 21.95 43.16% 81.37%;
-  --secondary-foreground: 25 30% 98%;
-  --muted: 25 20% 88%;
-  --muted-foreground: 25 10% 45%;
-  --accent: 80 20% 90%;
-  --accent-foreground: 80 30% 20%;
-  --destructive: 10 80% 40%;
+  /*
+   * ResQKit brand palette, derived from the logo (navy shield, blue spark,
+   * teal wordmark, green tagline) — same values as app/frontend/src/index.css.
+   * Red is reserved exclusively for --emergency (112 / hazard / critical-step
+   * UI) — never --destructive (generic delete/remove), which is neutral.
+   */
+  --background: 210 30% 97%;
+  --foreground: 207 55% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 207 55% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 207 55% 14%;
+  --primary: 202 74% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 176 55% 32%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 207 15% 40%;
+  --accent: 140 40% 93%;
+  --accent-foreground: 140 45% 20%;
+  --destructive: 207 20% 32%;
   --destructive-foreground: 0 0% 100%;
-  --border: 25 20% 80%;
-  --input: 25 20% 80%;
-  --ring: 18 60% 45%;
+  --emergency: 356 72% 48%;
+  --emergency-foreground: 0 0% 100%;
+  --border: 210 20% 85%;
+  --input: 210 20% 85%;
+  --ring: 202 74% 42%;
   --radius: 2rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark mode — same values as app/frontend/src/index.css .dark block. */
-    --background: 25 20% 10%;
-    --foreground: 25 20% 90%;
-    --card: 25 20% 13%;
-    --card-foreground: 25 20% 90%;
-    --popover: 25 20% 13%;
-    --popover-foreground: 25 20% 90%;
-    --primary: 18.05 57.58% 54.71%;
-    --primary-foreground: 25 20% 5%;
-    --secondary: 29.58 56.8% 24.51%;
-    --secondary-foreground: 25 20% 95%;
-    --muted: 25 10% 18%;
-    --muted-foreground: 25 10% 60%;
-    --accent: 18 60% 20%;
-    --accent-foreground: 18 60% 80%;
-    --destructive: 10 80% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 25 15% 20%;
-    --input: 25 15% 20%;
-    --ring: 18 60% 60%;
-  }
+/*
+ * Manually-controllable dark mode (NativeWind darkMode: 'class', driven by
+ * the Settings screen's toggle via nativewind's useColorScheme/setColorScheme
+ * — not react-native's own hook, which is OS-only and ignores the toggle).
+ */
+.dark {
+  --background: 207 45% 9%;
+  --foreground: 210 25% 92%;
+  --card: 207 40% 12%;
+  --card-foreground: 210 25% 92%;
+  --popover: 207 40% 12%;
+  --popover-foreground: 210 25% 92%;
+  --primary: 202 80% 60%;
+  --primary-foreground: 207 55% 10%;
+  --secondary: 176 50% 45%;
+  --secondary-foreground: 207 55% 10%;
+  --muted: 207 25% 18%;
+  --muted-foreground: 210 15% 65%;
+  --accent: 140 30% 20%;
+  --accent-foreground: 140 45% 80%;
+  --destructive: 207 15% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --emergency: 356 80% 60%;
+  --emergency-foreground: 0 0% 100%;
+  --border: 207 25% 22%;
+  --input: 207 25% 22%;
+  --ring: 202 80% 60%;
 }
