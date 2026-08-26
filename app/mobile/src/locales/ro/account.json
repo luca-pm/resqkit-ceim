@@ -1,0 +1,14 @@
+{
+  "title": "Cont",
+  "details": "DETALII",
+  "name": "Nume",
+  "phone": "Telefon",
+  "emergencyContact": "Contact de urgență",
+  "location": "Locație",
+  "locationHint": "Trimite locația la operatorii de urgență",
+  "edit": "Editează",
+  "logOut": "Log Out",
+  "notSet": "Nesetat",
+  "signInPrompt": "Autentifică-te pentru a vedea contul tău.",
+  "signInAction": "Autentificare"
+}

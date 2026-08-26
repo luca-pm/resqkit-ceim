@@ -1,0 +1,15 @@
+{
+  "title": "Setări",
+  "notifications": "NOTIFICĂRI",
+  "notificationsHint": "Salvat doar pe acest dispozitiv — încă neconectat la un serviciu real de notificări push.",
+  "push": "Push",
+  "urgentAlerts": "Alerte urgență",
+  "expiryReminders": "Reminder expirare trusă",
+  "preferences": "PREFERINȚE",
+  "language": "Limba",
+  "darkMode": "Mod întunecat",
+  "features": "CARACTERISTICI",
+  "version": "Versiune",
+  "termsOfService": "Terms of Service",
+  "privacyPolicy": "Privacy Policy"
+}

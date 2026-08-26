@@ -1,0 +1,21 @@
+{
+  "title": "Întrebări frecvente",
+  "items": [
+    {
+      "q": "ResQKit sună la 112 în locul meu?",
+      "a": "Nu. Butonul de apelare de pe fiecare ecran deschide apelul telefonului tău către 112 — acesta este singurul canal real de urgență din aplicație. ResQKit nu contactează niciodată automat serviciile de urgență."
+    },
+    {
+      "q": "Cum funcționează trimiterea datelor la operatorii de urgență?",
+      "a": "Implicit, totul este simulat în browser și nimic nu este trimis nicăieri. Dacă activezi explicit modul backend local din Setări, acțiunile sunt înregistrate pe serverul local al aplicației, doar pe acest dispozitiv — tot nu este un canal real către 112, ISU sau altă autoritate. Vezi Setări pentru explicația completă."
+    },
+    {
+      "q": "Datele mele sunt încărcate undeva?",
+      "a": "Nu. Profilul tău de siguranță și datele incidentului rămân pe acest dispozitiv, cu excepția cazului în care alegi explicit să arhivezi un incident în contul tău."
+    },
+    {
+      "q": "Cum contactez suportul?",
+      "a": "Folosește ecranul Contact — deschide aplicația ta de email adresată echipei de suport."
+    }
+  ]
+}

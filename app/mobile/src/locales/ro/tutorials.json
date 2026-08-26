@@ -1,0 +1,18 @@
+{
+  "title": "Tutoriale",
+  "videoTab": "Video",
+  "textTab": "Text",
+  "videoComingSoon": "Video disponibil în curând — citește ghidul text de mai jos.",
+  "items": [
+    {
+      "id": "how-to-use",
+      "title": "Cum să folosești ResQKit",
+      "description": "Un ghid al asistentului de urgență: apelarea 112, triaj, pericole, trusa ta și pașii ghidați."
+    },
+    {
+      "id": "isu-form",
+      "title": "Cum să completezi formularul trimis la ISU",
+      "description": "Ce face generatorul de payload NG protocol și de ce este doar un prototip, niciodată transmis real către o autoritate."
+    }
+  ]
+}

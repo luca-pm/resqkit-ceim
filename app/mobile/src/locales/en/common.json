@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Home",
+    "account": "Account",
+    "settings": "Settings",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "tutorials": "Tutorials",
+    "history": "History"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "logOut": "Log out",
+    "edit": "Edit",
+    "continue": "Continue",
+    "comingSoon": "Coming soon"
+  },
+  "app": {
+    "name": "ResQKit",
+    "tagline": "Assists. Does not replace 112."
+  },
+  "appearance": {
+    "title": "Appearance & language",
+    "darkMode": "Dark mode",
+    "language": "Language"
+  }
+}

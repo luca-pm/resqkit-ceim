@@ -1,0 +1,8 @@
+{
+  "title": "History",
+  "empty": "No archived incidents yet. Incidents are only saved here if you explicitly archive them from the review screen.",
+  "victims": "{{count}} injured",
+  "hazards": "{{count}} hazard(s)",
+  "loading": "Loading your history...",
+  "error": "Could not load your history. Try again later."
+}

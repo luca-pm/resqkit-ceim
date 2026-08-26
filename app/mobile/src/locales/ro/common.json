@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Acasă",
+    "account": "Cont",
+    "settings": "Setări",
+    "faq": "Întrebări frecvente",
+    "contact": "Contact",
+    "tutorials": "Tutoriale",
+    "history": "Istoric"
+  },
+  "actions": {
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "back": "Înapoi",
+    "logOut": "Deconectare",
+    "edit": "Editează",
+    "continue": "Continuă",
+    "comingSoon": "Curând disponibil"
+  },
+  "app": {
+    "name": "ResQKit",
+    "tagline": "Asistă. Nu înlocuiește 112."
+  },
+  "appearance": {
+    "title": "Aspect și limbă",
+    "darkMode": "Mod întunecat",
+    "language": "Limbă"
+  }
+}

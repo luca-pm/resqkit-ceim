@@ -1,0 +1,8 @@
+{
+  "title": "Istoric",
+  "empty": "Niciun incident arhivat încă. Incidentele sunt salvate aici doar dacă alegi explicit să le arhivezi din ecranul de revizuire.",
+  "victims": "{{count}} răniți",
+  "hazards": "{{count}} pericol(e)",
+  "loading": "Se încarcă istoricul tău...",
+  "error": "Nu s-a putut încărca istoricul. Încearcă din nou mai târziu."
+}

@@ -1,0 +1,9 @@
+{
+  "title": "ResQKit AI",
+  "disclaimer": "General first-aid questions only. This chat never contacts 112 — for a real emergency, use the call button.",
+  "placeholder": "Write a message or ask a question...",
+  "greeting": "Hi! I'm the ResQKit assistant. What can I help you with about your first-aid kit?",
+  "clear": "Clear conversation",
+  "sending": "Thinking...",
+  "error": "Something went wrong. Try again."
+}

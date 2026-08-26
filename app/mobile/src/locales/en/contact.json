@@ -1,0 +1,16 @@
+{
+  "title": "Contact",
+  "subtitle": "Reach the ResQKit team.",
+  "email": "support@resqkit.com",
+  "formTitle": "Send a message",
+  "name": "Name",
+  "namePlaceholder": "First and last name",
+  "emailLabel": "Email",
+  "emailPlaceholder": "you@domain.com",
+  "subject": "Subject",
+  "subjectPlaceholder": "Write the subject",
+  "message": "Message",
+  "messagePlaceholder": "Write your message here...",
+  "send": "Send",
+  "sendHint": "Opens your email app, addressed to support@resqkit.com."
+}

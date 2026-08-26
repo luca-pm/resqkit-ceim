@@ -39,7 +39,8 @@
         {
           "cameraPermission": "ResQKit uses the camera to identify what's in your first-aid kit. The photo is analyzed once and never saved."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

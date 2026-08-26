@@ -1,0 +1,9 @@
+{
+  "title": "ResQKit AI",
+  "disclaimer": "Doar întrebări generale de prim ajutor. Acest chat nu contactează niciodată 112 — pentru o urgență reală, folosește butonul de apel.",
+  "placeholder": "Scrie un mesaj sau pune o întrebare...",
+  "greeting": "Bună! Sunt asistentul ResQKit. Cu ce te pot ajuta în legătură cu trusa ta de prim ajutor?",
+  "clear": "Șterge conversația",
+  "sending": "Gândesc...",
+  "error": "Ceva nu a mers bine. Încearcă din nou."
+}

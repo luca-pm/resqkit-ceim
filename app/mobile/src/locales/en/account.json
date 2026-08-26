@@ -1,0 +1,14 @@
+{
+  "title": "Account",
+  "details": "DETAILS",
+  "name": "Name",
+  "phone": "Phone",
+  "emergencyContact": "Emergency contact",
+  "location": "Location",
+  "locationHint": "Send location to emergency operators",
+  "edit": "Edit",
+  "logOut": "Log Out",
+  "notSet": "Not set",
+  "signInPrompt": "Sign in to see your account.",
+  "signInAction": "Sign in"
+}

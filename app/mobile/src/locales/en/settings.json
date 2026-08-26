@@ -1,0 +1,15 @@
+{
+  "title": "Settings",
+  "notifications": "NOTIFICATIONS",
+  "notificationsHint": "Saved on this device only — not yet connected to a real push notification service.",
+  "push": "Push",
+  "urgentAlerts": "Urgent alerts",
+  "expiryReminders": "Kit expiry reminder",
+  "preferences": "PREFERENCES",
+  "language": "Language",
+  "darkMode": "Dark mode",
+  "features": "FEATURES",
+  "version": "Version",
+  "termsOfService": "Terms of Service",
+  "privacyPolicy": "Privacy Policy"
+}
