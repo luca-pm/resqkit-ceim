@@ -1,6 +1,6 @@
 from core.database import Base
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 
 
 class Incident_records(Base):
@@ -8,6 +8,11 @@ class Incident_records(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
+    # Nullable: rows created before this column existed have no owner and are
+    # only visible via the admin /all endpoint (see routers/incident_records.py).
+    # ondelete='SET NULL' so deleting a user account doesn't silently wipe
+    # their archived incident history.
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     context_type = Column(String, nullable=False)
     occurred_at = Column(String, nullable=False)
     location_summary = Column(String, nullable=True)

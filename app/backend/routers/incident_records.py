@@ -127,11 +127,12 @@ async def query_incident_recordss(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Query incident_recordss with filtering, sorting, and pagination"""
+    """Query incident_recordss with filtering, sorting, and pagination — always
+    scoped to the current user. Use GET /all (admin-only) for an unscoped view."""
     logger.debug(f"Querying incident_recordss: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
-    
+
     service = Incident_recordsService(db)
     try:
         # Parse query JSON if provided
@@ -141,7 +142,11 @@ async def query_incident_recordss(
                 query_dict = json.loads(query)
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid query JSON format")
-        
+
+        # Force-scope to the caller regardless of what the client asked for —
+        # never trust a client-supplied user_id filter.
+        query_dict = {**(query_dict or {}), "user_id": current_user.id}
+
         result = await service.get_list(
             skip=skip, 
             limit=limit,
@@ -206,18 +211,20 @@ async def get_incident_records(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Get a single incident_records by ID"""
+    """Get a single incident_records by ID, owned by the caller."""
     logger.debug(f"Fetching incident_records with id: {id}, fields={fields}")
-    
+
     service = Incident_recordsService(db)
     try:
         result = await service.get_by_id(id)
-        if not result:
+        # 404 (not 403) on a non-owned record too — don't confirm it exists
+        # to someone who doesn't own it.
+        if not result or result.user_id != current_user.id:
             logger.warning(f"Incident_records with id {id} not found")
             raise HTTPException(status_code=404, detail="Incident_records not found")
-        
+
         return result
     except HTTPException:
         raise
@@ -230,14 +237,15 @@ async def get_incident_records(
 async def create_incident_records(
     data: Incident_recordsData,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Create a new incident_records"""
+    """Create a new incident_records, owned by the caller."""
     logger.debug(f"Creating new incident_records with data: {data}")
-    
+
     service = Incident_recordsService(db)
     try:
-        result = await service.create(data.model_dump())
+        # user_id is set server-side — never trust a client-supplied value.
+        result = await service.create({**data.model_dump(), "user_id": current_user.id})
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create incident_records")
         
@@ -255,17 +263,17 @@ async def create_incident_records(
 async def create_incident_recordss_batch(
     request: Incident_recordsBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Create multiple incident_recordss in a single request"""
+    """Create multiple incident_recordss in a single request, all owned by the caller."""
     logger.debug(f"Batch creating {len(request.items)} incident_recordss")
-    
+
     service = Incident_recordsService(db)
     results = []
-    
+
     try:
         for item_data in request.items:
-            result = await service.create(item_data.model_dump())
+            result = await service.create({**item_data.model_dump(), "user_id": current_user.id})
             if result:
                 results.append(result)
         
@@ -281,16 +289,20 @@ async def create_incident_recordss_batch(
 async def update_incident_recordss_batch(
     request: Incident_recordsBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Update multiple incident_recordss in a single request"""
+    """Update multiple incident_recordss in a single request. Items not owned
+    by the caller are silently skipped (same as "not found" elsewhere here)."""
     logger.debug(f"Batch updating {len(request.items)} incident_recordss")
-    
+
     service = Incident_recordsService(db)
     results = []
-    
+
     try:
         for item in request.items:
+            existing = await service.get_by_id(item.id)
+            if not existing or existing.user_id != current_user.id:
+                continue
             # Only include non-None values for partial updates
             update_dict = {k: v for k, v in item.updates.model_dump().items() if v is not None}
             result = await service.update(item.id, update_dict)
@@ -310,20 +322,25 @@ async def update_incident_records(
     id: int,
     data: Incident_recordsUpdateData,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Update an existing incident_records"""
+    """Update an existing incident_records, owned by the caller."""
     logger.debug(f"Updating incident_records {id} with data: {data}")
 
     service = Incident_recordsService(db)
     try:
+        existing = await service.get_by_id(id)
+        if not existing or existing.user_id != current_user.id:
+            logger.warning(f"Incident_records with id {id} not found for update")
+            raise HTTPException(status_code=404, detail="Incident_records not found")
+
         # Only include non-None values for partial updates
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         result = await service.update(id, update_dict)
         if not result:
             logger.warning(f"Incident_records with id {id} not found for update")
             raise HTTPException(status_code=404, detail="Incident_records not found")
-        
+
         logger.info(f"Incident_records {id} updated successfully")
         return result
     except HTTPException:
@@ -340,16 +357,20 @@ async def update_incident_records(
 async def delete_incident_recordss_batch(
     request: Incident_recordsBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Delete multiple incident_recordss by their IDs"""
+    """Delete multiple incident_recordss by their IDs. Items not owned by the
+    caller are silently skipped (same as "not found" elsewhere here)."""
     logger.debug(f"Batch deleting {len(request.ids)} incident_recordss")
-    
+
     service = Incident_recordsService(db)
     deleted_count = 0
-    
+
     try:
         for item_id in request.ids:
+            existing = await service.get_by_id(item_id)
+            if not existing or existing.user_id != current_user.id:
+                continue
             success = await service.delete(item_id)
             if success:
                 deleted_count += 1
@@ -366,18 +387,23 @@ async def delete_incident_recordss_batch(
 async def delete_incident_records(
     id: int,
     db: AsyncSession = Depends(get_db),
-    _current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_user),
 ):
-    """Delete a single incident_records by ID"""
+    """Delete a single incident_records by ID, owned by the caller."""
     logger.debug(f"Deleting incident_records with id: {id}")
-    
+
     service = Incident_recordsService(db)
     try:
+        existing = await service.get_by_id(id)
+        if not existing or existing.user_id != current_user.id:
+            logger.warning(f"Incident_records with id {id} not found for deletion")
+            raise HTTPException(status_code=404, detail="Incident_records not found")
+
         success = await service.delete(id)
         if not success:
             logger.warning(f"Incident_records with id {id} not found for deletion")
             raise HTTPException(status_code=404, detail="Incident_records not found")
-        
+
         logger.info(f"Incident_records {id} deleted successfully")
         return {"message": "Incident_records deleted successfully", "id": id}
     except HTTPException:

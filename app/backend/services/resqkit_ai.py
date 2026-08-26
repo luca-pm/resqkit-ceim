@@ -24,6 +24,14 @@ Neither model is allowed to author medical procedures or legal statements.
 Those come exclusively from the curated content pack in the frontend
 (`src/lib/knowledge.ts`), which is itself sourced from the research
 deliverables in the repository root.
+
+3. `chat` — free-text first-aid Q&A ("ResQKit AI"). Unlike the two methods
+   above, free text cannot be whitelist- or fact-checked, so it is
+   constrained behaviorally instead: a strict system prompt, low
+   temperature, and — critically — a pre-model heuristic guard that
+   short-circuits to a hardcoded "call 112" response for messages that read
+   like an active, in-progress emergency rather than a general question, so
+   that guarantee does not depend on the model following instructions.
 """
 
 import json
@@ -86,6 +94,62 @@ HAZARD_WHITELIST: Dict[str, str] = {
 }
 
 VALID_CONTEXTS = {"road", "office", "maritime", "mountain", "other"}
+
+CHAT_MODEL = settings.resqkit_text_model
+CHAT_MAX_HISTORY_TURNS = 8
+
+# Phrasing that suggests an ACTIVE, in-progress emergency rather than a
+# general question. Deliberately conservative (biased toward false positives
+# — an unnecessary "call 112" reminder costs nothing; a missed one could
+# cost a lot). Checked against the latest user message only.
+_ACTIVE_EMERGENCY_PATTERNS = [
+    r"\bnot breathing\b", r"\bstopped breathing\b", r"\bcan'?t breathe\b",
+    r"\bno pulse\b", r"\bunconscious\b", r"\bunresponsive\b", r"\bcollapsed\b",
+    r"\bpassed out\b", r"\bnot waking up\b", r"\bwon'?t wake up\b",
+    r"\bbleeding (a lot|heavily|badly|won'?t stop)\b", r"\bsevere bleeding\b",
+    r"\bchoking\b(?! on the word)", r"\bheart attack\b", r"\bstroke\b",
+    r"\bseizure\b", r"\bconvulsing\b", r"\banaphylax", r"\ballergic reaction\b.*\b(now|right now|happening)\b",
+    r"\bright now\b.*\b(help|dying|bleeding|breathing)\b", r"\bhe'?s dying\b", r"\bshe'?s dying\b",
+    r"\bthey'?re dying\b", r"\bcall (an )?ambulance\b", r"\bin (a car|water|the water) and\b",
+    r"\bhelp me now\b", r"\bwhat do i do (right )?now\b.*\b(bleeding|breathing|unconscious)\b",
+]
+_ACTIVE_EMERGENCY_RE = re.compile("|".join(_ACTIVE_EMERGENCY_PATTERNS), re.IGNORECASE)
+
+CHAT_EMERGENCY_SHORT_CIRCUIT_REPLY = (
+    "This sounds like it might be happening right now. Call 112 immediately — "
+    "this chat is for general first-aid questions, not for live emergencies. "
+    "If you've already called, follow the operator's instructions; the "
+    "guided steps in this app can help while you wait."
+)
+
+CHAT_DEGRADED_REPLY = (
+    "I couldn't reach the assistant right now. For general guidance, see the "
+    "Learn section's step-by-step guides. If this is an active emergency, "
+    "call 112."
+)
+
+CHAT_SYSTEM_PROMPT = (
+    "You are the ResQKit AI assistant, answering general first-aid questions "
+    "for bystanders inside a first-aid companion app.\n\n"
+    "STRICT RULES\n"
+    "1. Answer only general first-aid education questions (how a technique "
+    "works, what an item in a kit is for, how to prepare). Do not diagnose, "
+    "do not prescribe medication or dosages, do not give advice specific to "
+    "one person's described symptoms as if examining them.\n"
+    "2. If the message describes what sounds like an active, in-progress "
+    "emergency, your entire reply must be to tell the user to call 112 "
+    "immediately — do not attempt to answer the question first.\n"
+    "3. Never claim ResQKit or this chat contacts emergency services. The "
+    "only real 112 channel is the phone's own dialer.\n"
+    "4. Keep answers short (under 120 words), plain language, no medical "
+    "jargon without explanation.\n"
+    "5. If you are not confident in an answer, say so and suggest the "
+    "Learn section instead of guessing."
+)
+
+
+def _looks_like_active_emergency(message: str) -> bool:
+    return bool(_ACTIVE_EMERGENCY_RE.search(message))
 
 
 def _extract_json_block(text: str) -> str:
@@ -366,3 +430,49 @@ class ResQKitAIService:
             )
 
         return {"spoken": spoken, "model": NARRATIVE_MODEL}
+
+    # ------------------------------------------------------------------ #
+    # ResQKit AI chat
+    # ------------------------------------------------------------------ #
+
+    async def chat(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Answer a general first-aid question. History is capped server-side
+        and never persisted — the caller (client) owns conversation history,
+        matching the app's local-first ethos.
+
+        Unlike recognize_kit/polish_brief, free text can't be whitelist- or
+        fact-checked, so the active-emergency guard runs BEFORE any model
+        call: that guarantee must not depend on the model following
+        instructions.
+        """
+        if not messages:
+            raise HTTPException(status_code=400, detail="messages is required.")
+
+        last_user = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+        if last_user and _looks_like_active_emergency(str(last_user.get("content", ""))):
+            return {"reply": CHAT_EMERGENCY_SHORT_CIRCUIT_REPLY, "degraded": False, "model": "guard"}
+
+        capped = messages[-(CHAT_MAX_HISTORY_TURNS * 2):]
+        request = GenTxtRequest(
+            messages=[
+                ChatMessage(role="system", content=CHAT_SYSTEM_PROMPT),
+                *[ChatMessage(role=m["role"], content=m["content"]) for m in capped],
+            ],
+            model=CHAT_MODEL,
+            stream=False,
+            temperature=0.2,
+            max_tokens=500,
+        )
+
+        try:
+            response = await self._aihub.gentxt(request)
+        except Exception as exc:  # noqa: BLE001 — chat must degrade, never dead-end
+            logger.warning("ResQKit chat call failed: %s", exc)
+            return {"reply": CHAT_DEGRADED_REPLY, "degraded": True, "model": CHAT_MODEL}
+
+        reply = (response.content or "").strip()
+        if not reply:
+            return {"reply": CHAT_DEGRADED_REPLY, "degraded": True, "model": CHAT_MODEL}
+
+        return {"reply": reply, "degraded": False, "model": CHAT_MODEL}
