@@ -82,6 +82,14 @@ const Emergency: React.FC = () => {
   const [locating, setLocating] = useState(false);
   const [testingVoiceChannel, setTestingVoiceChannel] = useState(false);
 
+  /**
+   * Draft text for the victim-count field so it can be emptied while typing.
+   * Binding straight to the stored number rewrote 1 into the field the moment
+   * it was cleared, so the next digit appended instead of replacing. null means
+   * "not editing, show the stored value". Mirrors app/mobile's emergency.tsx.
+   */
+  const [victimDraft, setVictimDraft] = useState<string | null>(null);
+
   const onSession = (id: string, code: string | null) =>
     updateIncident({ backendSessionId: id, sessionCode: code });
 
@@ -479,10 +487,14 @@ const Emergency: React.FC = () => {
                   type="number"
                   min={1}
                   max={99}
-                  value={incident.victimCount}
-                  onChange={(e) =>
-                    updateIncident({ victimCount: Math.max(1, Number(e.target.value) || 1) })
-                  }
+                  value={victimDraft ?? String(incident.victimCount)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 2);
+                    setVictimDraft(digits);
+                    const parsed = parseInt(digits, 10);
+                    if (parsed >= 1) updateIncident({ victimCount: parsed });
+                  }}
+                  onBlur={() => setVictimDraft(null)}
                 />
               </div>
               <div className="space-y-1.5">

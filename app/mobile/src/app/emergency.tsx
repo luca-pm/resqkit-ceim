@@ -143,6 +143,20 @@ export default function EmergencyScreen() {
   const [locating, setLocating] = useState(false);
   const [testingVoiceChannel, setTestingVoiceChannel] = useState(false);
 
+  /**
+   * Draft text for the victim-count field, so it can be *emptied* while typing.
+   *
+   * Binding the input straight to the stored number made it impossible to
+   * retype: clearing "1" produced an empty string, parseInt('') is NaN, and the
+   * `|| 1` fallback wrote 1 straight back before the next keystroke landed — so
+   * typing 2 appended onto the restored 1 and gave 12.
+   *
+   * null means "not editing, show the stored value". A non-null draft (empty
+   * string included) is what the user is currently typing, and is only written
+   * back to the incident once it parses to a sane count.
+   */
+  const [victimDraft, setVictimDraft] = useState<string | null>(null);
+
   const onSession = (id: string, code: string | null) =>
     updateIncident({ backendSessionId: id, sessionCode: code });
 
@@ -580,10 +594,19 @@ export default function EmergencyScreen() {
               </View>
               <Input
                 keyboardType="number-pad"
-                value={String(incident.victimCount)}
-                onChangeText={(text) =>
-                  updateIncident({ victimCount: Math.max(1, parseInt(text, 10) || 1) })
-                }
+                value={victimDraft ?? String(incident.victimCount)}
+                onChangeText={(text) => {
+                  // The number-pad still offers "." "-" and "," on Android, and
+                  // a count of "1.2" helps nobody — keep digits only. Capped at
+                  // 2 digits to match the web field's max={99}.
+                  const digits = text.replace(/[^0-9]/g, '').slice(0, 2);
+                  setVictimDraft(digits);
+                  const parsed = parseInt(digits, 10);
+                  if (parsed >= 1) updateIncident({ victimCount: parsed });
+                }}
+                // Leaving the field empty must not persist an empty count:
+                // dropping the draft falls back to the last committed value.
+                onBlur={() => setVictimDraft(null)}
               />
             </View>
 
