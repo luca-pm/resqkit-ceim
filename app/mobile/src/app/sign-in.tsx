@@ -11,14 +11,22 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Input, PasswordInput } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { client } from '@/lib/apiClient';
+import { client, getAPIBaseURL } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTokenColors } from '@/lib/tokenColors';
+
+/** Shape rejected by apiClient's response interceptor. */
+interface ApiError {
+  status?: number;
+  message?: string;
+}
 
 export default function SignInScreen() {
   const { t } = useTranslation('auth');
   const { refetch } = useAuth();
+  const colors = useTokenColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,8 +39,19 @@ export default function SignInScreen() {
       await client.auth.login(email.trim(), password);
       await refetch();
       router.back();
-    } catch {
-      setError(t('errorGeneric'));
+    } catch (e) {
+      // A wrong password and an unreachable server produced the same message
+      // before, which made "the password stopped working" impossible to tell
+      // apart from "the phone can't see the dev backend" — the single most
+      // common failure while testing on a hotspot. Split them.
+      const err = e as ApiError;
+      if (err.status === 401) {
+        setError(t('errorCredentials'));
+      } else if (err.status === undefined) {
+        setError(t('errorNetwork', { url: getAPIBaseURL() }));
+      } else {
+        setError(t('errorServer', { status: err.status }));
+      }
     } finally {
       setLoading(false);
     }
@@ -56,12 +75,12 @@ export default function SignInScreen() {
         </View>
         <View className="gap-1.5">
           <Text className="text-sm font-medium text-foreground">{t('password')}</Text>
-          <Input value={password} onChangeText={setPassword} secureTextEntry />
+          <PasswordInput value={password} onChangeText={setPassword} />
         </View>
 
         {error !== '' && (
           <View className="flex-row items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
-            <AlertCircle color="hsl(207 20% 32%)" size={16} />
+            <AlertCircle color={colors.destructive} size={16} />
             <Text className="flex-1 text-sm text-destructive">{error}</Text>
           </View>
         )}
