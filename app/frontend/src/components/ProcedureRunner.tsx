@@ -8,7 +8,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pause, Play, Stethoscope } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pause, PhoneCall, Play, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -120,6 +120,19 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
           aria-label="Procedure progress"
         />
       </div>
+
+      {/* Above the steps and never dismissed: these criteria decide whether the
+          bystander should be calling rather than treating, so they must be
+          readable before the first action and still visible at the last one. */}
+      {procedure.escalation && (
+        <div className="rounded-lg border border-emergency/40 bg-emergency/5 p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emergency">
+            <PhoneCall className="h-3.5 w-3.5" aria-hidden="true" />
+            Call 112 first if any of this applies
+          </p>
+          <p className="mt-2 text-base leading-relaxed">{procedure.escalation}</p>
+        </div>
+      )}
 
       <Card className={step.critical ? 'border-emergency/50' : undefined}>
         <CardContent className="space-y-3 p-5">

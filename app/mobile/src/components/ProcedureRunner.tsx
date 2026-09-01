@@ -19,7 +19,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pause, Play, Stethoscope } from 'lucide-react-native';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pause, Play, PhoneCall, Stethoscope } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -136,6 +136,23 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
           accessibilityLabel="Procedure progress"
         />
       </View>
+
+      {/* Above the steps and never dismissed: these criteria decide whether the
+          bystander should be calling rather than treating, so they must be
+          readable before the first action and still visible at the last one. */}
+      {procedure.escalation && (
+        <View className="rounded-lg border border-emergency/40 bg-emergency/5 p-4">
+          <View className="flex-row items-center gap-1.5">
+            <PhoneCall size={14} color={colors.emergency} />
+            <Text className="text-xs font-semibold uppercase tracking-wide text-emergency">
+              Call 112 first if any of this applies
+            </Text>
+          </View>
+          <Text className="mt-2 text-base leading-relaxed text-foreground">
+            {procedure.escalation}
+          </Text>
+        </View>
+      )}
 
       {wasInterrupted && (
         <Card className="border-primary/40">

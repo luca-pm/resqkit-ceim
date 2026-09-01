@@ -14,8 +14,12 @@
  *  - MVP     -> /ResQKit_MVP_Screens_and_User_Flow.md
  */
 
-export const CONTENT_PACK_VERSION = '1.0.0-mvp';
-export const CONTENT_PACK_UPDATED = '2026-08-12';
+/* Bumped when curated safety content changes, because every incident and
+   handoff brief is stamped with this for provenance. 1.1.0: the burns
+   escalation criteria moved out of the step sequence into Procedure.escalation
+   so they are read before the first action rather than after it. */
+export const CONTENT_PACK_VERSION = '1.1.0-mvp';
+export const CONTENT_PACK_UPDATED = '2026-09-02';
 
 export const SOURCE_DOCS: Record<string, string> = {
   EU_REG: 'eu_regulations_emergency_response_data_handling_report.md',
@@ -390,6 +394,20 @@ export interface Procedure {
   name: string;
   shortLabel: string;
   whenToUse: string;
+  /**
+   * Red flags that make this a 112 case, shown above the steps and kept on
+   * screen throughout — never as a step.
+   *
+   * Escalation criteria are not actions you perform and tick off, they decide
+   * whether the bystander should be calling instead of treating. Burns had
+   * these as the final step, so the instruction to call 112 for a facial or
+   * airway burn arrived only after a full 20-minute cooling step. Anything
+   * that changes whether to call must be readable before the first action.
+   *
+   * Optional: a procedure without distinct red flags (the whole of CPR is
+   * already a 112 case) leaves it unset rather than carrying filler.
+   */
+  escalation?: string;
   steps: ProcedureStep[];
   sources: string[];
   clinicalReview: 'pending' | 'verified';
@@ -557,6 +575,8 @@ export const PROCEDURES: Procedure[] = [
     whenToUse: 'Heat, steam, hot liquid, friction or chemical damage to the skin.',
     clinicalReview: 'pending',
     sources: ['AR', 'MVP'],
+    escalation:
+      'Call 112 for burns larger than the person\'s palm, any burn to face, hands, feet or genitals, any electrical or chemical burn, or if breathing sounds affected.',
     steps: [
       {
         title: 'Stop the burning process',
@@ -588,12 +608,6 @@ export const PROCEDURES: Procedure[] = [
         detail: 'Cooling a large burn cools the whole body. Cover unburned areas to prevent hypothermia.',
         requiresItems: ['thermal_blanket'],
         withoutItem: 'Cover unburned areas with any blanket or coat.',
-      },
-      {
-        title: 'Escalate large, deep, facial or airway burns',
-        detail:
-          'Call 112 for burns larger than the person\'s palm, any burn to face, hands, feet or genitals, any electrical or chemical burn, or if breathing sounds affected.',
-        critical: true,
       },
     ],
   },
