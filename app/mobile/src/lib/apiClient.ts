@@ -16,6 +16,9 @@ const clearToken = () => AsyncStorage.removeItem(TOKEN_KEY);
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8001';
 
+/** Mirrors web's lib/config.ts getAPIBaseURL — used to derive the ws:// origin. */
+export const getAPIBaseURL = (): string => API_BASE_URL;
+
 const http = axios.create({ baseURL: API_BASE_URL });
 
 http.interceptors.request.use(async (config) => {

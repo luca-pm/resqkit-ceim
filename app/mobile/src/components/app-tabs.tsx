@@ -55,6 +55,14 @@ export default function AppTabs() {
       />
 
       {/* Real routes, hidden from the tab bar — reachable via router.push. */}
+      <Tabs.Screen name="consent" options={{ href: null }} />
+      <Tabs.Screen name="emergency" options={{ href: null }} />
+      <Tabs.Screen name="handoff" options={{ href: null }} />
+      <Tabs.Screen name="review" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="kits" options={{ href: null }} />
+      <Tabs.Screen name="learn" options={{ href: null }} />
+      <Tabs.Screen name="regulations" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="sign-in" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
