@@ -12,10 +12,10 @@
  * any installed app, and there is no silent download path.
  */
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Copy, Radio, Share2, Sparkles, Volume2 } from 'lucide-react-native';
+import { CheckCircle2, Copy, Radio, Share2, Sparkles, Volume2 } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -102,6 +102,42 @@ export default function HandoffScreen() {
     startIncident();
     toast.success('New incident started. The previous one was discarded without review.');
     router.replace('/emergency');
+  };
+
+  /**
+   * Closes the incident for good and returns to standby.
+   *
+   * This is the exit the handoff screen was missing. Without it the only way
+   * out ran through "Review and delete data", which reads as a data-rights
+   * screen rather than "I'm finished here" — so an incident stayed open,
+   * Home offered only "Resume incident", and a second call-out could not be
+   * started at all.
+   *
+   * Known gap, consistent with the rest of the app: RetentionChoice is
+   * recorded but never enforced anywhere, so closing always deletes now
+   * rather than honouring a 24h/7d choice. The confirmation text therefore
+   * says plainly that it deletes, instead of implying a scheduled sweep that
+   * does not exist.
+   */
+  const endIncident = () => {
+    Alert.alert(
+      'End this incident?',
+      'It will be closed and deleted from this device. If you want to keep a copy or archive it to your account, review it first.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Review first', onPress: () => router.push('/review') },
+        {
+          text: 'End and delete',
+          style: 'destructive',
+          onPress: () => {
+            void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
+            discardIncident();
+            toast.success('Incident closed and deleted from this device.');
+            router.replace('/');
+          },
+        },
+      ],
+    );
   };
 
   const narrate = async () => {
@@ -305,19 +341,30 @@ export default function HandoffScreen() {
         </CardContent>
       </Card>
 
-      <Card className="border-dashed">
+      <Card>
         <CardContent className="gap-3">
-          <Text className="font-semibold text-foreground">Done here?</Text>
+          <Text className="font-semibold text-foreground">The crew has taken over?</Text>
           <Text className="text-sm text-muted-foreground">
-            Review lets you choose what to keep before this incident is cleared. Starting a new
-            incident discards this one right away, with no review step.
+            Close the incident once you have handed over. Until you do, ResQKit keeps it open and
+            offers only &ldquo;Resume&rdquo; on the home screen.
           </Text>
-          <Button size="lg" variant="secondary" onPress={() => router.push('/review')}>
-            Review and delete data
+
+          <Button size="lg" variant="destructive" onPress={endIncident}>
+            <CheckCircle2 size={20} color={colors.destructiveForeground} />
+            <Text className="text-base font-medium text-destructive-foreground">End incident</Text>
           </Button>
-          <Button size="lg" variant="outline" onPress={startNewIncident}>
-            Start a new incident
-          </Button>
+
+          <View className="gap-2">
+            <Button size="lg" variant="secondary" onPress={() => router.push('/review')}>
+              Keep a copy or archive it first
+            </Button>
+            <Button size="lg" variant="outline" onPress={startNewIncident}>
+              Start a new incident instead
+            </Button>
+          </View>
+          <Text className="text-xs text-muted-foreground">
+            Starting a new incident discards this one immediately, with no review step.
+          </Text>
         </CardContent>
       </Card>
     </ScrollView>

@@ -6,7 +6,7 @@
  * bystander must never be blocked by an auth screen at a crash site.
  */
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Backpack,
@@ -22,14 +22,17 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from '@/components/ui/toast';
 import { callEmergencyServices } from '@/components/AppShell';
 import { useIncident } from '@/contexts/IncidentContext';
+import { terminateInstitutionalSession } from '@/lib/institutionalActions';
 import { profileHasHealthData } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { consent, profile, incident, startIncident } = useIncident();
+  const { consent, profile, incident, startIncident, settings, logInstitutional, discardIncident } =
+    useIncident();
   const colors = useTokenColors();
 
   const beginIncident = () => {
@@ -39,6 +42,32 @@ export default function HomeScreen() {
     }
     if (!incident) startIncident();
     router.push('/emergency');
+  };
+
+  /**
+   * Second exit from a stuck incident, mirroring handoff's "End incident".
+   * This card is where being unable to start a fresh call-out is actually
+   * felt — the main button reads "Resume incident" and nothing here offered
+   * a way out — so the escape belongs here too, not only after handoff.
+   */
+  const endIncident = () => {
+    if (!incident) return;
+    Alert.alert(
+      'End this incident?',
+      'It will be closed and deleted from this device. To keep a copy or archive it to your account, open it and use Review instead.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End and delete',
+          style: 'destructive',
+          onPress: () => {
+            void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
+            discardIncident();
+            toast.success('Incident closed. You can start a new one.');
+          },
+        },
+      ],
+    );
   };
 
   const shortcuts = [
@@ -109,9 +138,14 @@ export default function HomeScreen() {
                 </Text>
               </View>
             </View>
-            <Button size="sm" onPress={() => router.push('/emergency')}>
-              Continue
-            </Button>
+            <View className="gap-2">
+              <Button size="sm" onPress={() => router.push('/emergency')}>
+                Continue
+              </Button>
+              <Button size="sm" variant="outline" onPress={endIncident}>
+                End incident
+              </Button>
+            </View>
           </CardContent>
         </Card>
       )}
