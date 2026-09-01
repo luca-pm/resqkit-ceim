@@ -161,7 +161,19 @@ export const DEFAULT_SETTINGS: AppSettings = {
   retention: 'session',
   localCounters: false,
   lastContext: null,
-  realDataMode: false,
+  /**
+   * Development builds default this ON: simulated mode shows nothing useful
+   * while building or demoing, so having to toggle it on every fresh install
+   * is pure friction.
+   *
+   * Production builds MUST default it off. There, "local backend" is a real
+   * server rather than the developer's laptop, and defaulting it on would mean
+   * every incident silently creates a server-side session carrying context,
+   * triage answers and location — contradicting the no-egress-by-default
+   * guarantee in ResQKit_MVP_Screens_and_User_Flow.md that the app's whole
+   * GDPR posture rests on. The user's explicit opt-in is the point.
+   */
+  realDataMode: __DEV__,
   uiLanguage: null,
   themePreference: 'system',
   notifications: {

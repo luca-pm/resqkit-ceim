@@ -99,6 +99,20 @@ Flagging these explicitly rather than letting them stay implicit:
 5. Given that capturing 112 call audio is impossible on both mobile platforms (conflict 5), what should "passive voice recognition" become? The realistic option is transcribing the bystander's scene description before/after the call, into the handoff brief. Confirm that is the intended direction before further design assumes operator audio.
 6. Since NG112 infrastructure already exists in Romania (conflict 6), should someone open an accreditation conversation with STS now? This is not blocked on engineering, and lead times for institutional processes are typically long — starting late is the main risk.
 
+## 4b. For the legal team
+
+These are not engineering decisions and should not be settled from an architecture diagram. Flagging them now because each is far cheaper to design around than to retrofit, and two of them gate features that are otherwise ready to build.
+
+1. **Is recording the 112 operator lawful?** Note this is currently moot in practice — the platforms make it impossible (conflict 5) — but it determines whether the question is worth revisiting if that ever changes (e.g. a native NG112 integration rather than a phone call). Relevant framing: STS already records 112 calls as standard PSAP practice, so the question is not whether a recording exists, but whether ResQKit is entitled to a second copy, and on what lawful basis.
+
+2. **Scene audio captures people who never consented.** The buildable form of voice recognition — transcribing the bystander describing the scene — will incidentally capture injured people, other bystanders and arriving responders. That is special-category data (health, and potentially biometric) belonging to third parties who cannot meaningfully consent mid-emergency. Is there a lawful basis (vital interests, Art. 6(1)(d) / Art. 9(2)(c)?), and what retention applies to a transcript that mentions a stranger's injuries?
+
+3. **What may the ISU dashboard receive, and under what basis?** The pairing-code dashboard is technically working and is the near-term demo. Once it carries real incident data to a third party (a dispatcher, an instructor, a demo audience), the local-first posture no longer covers it. Who is controller vs. processor, and what does the bystander need to be told at pairing time?
+
+4. **Does the "no PSAP/112 data channel in MVP" boundary need to hold legally, or only practically?** Conflict 4 records this as a scope disagreement. If there is also a legal reason for the boundary, it should be documented as such — a scope decision can be reversed by a product call, a legal constraint cannot.
+
+5. **Health data in the Safety Profile and the handoff brief.** Already implemented as explicit, separate, withdrawable consent (GDPR Art. 9) stored on-device only. Worth a review that the current consent wording and the "archive to my account" path actually satisfy what the team believes they satisfy.
+
 ## 5. Not yet started
 
 - **React Native migration** (full feature parity, Expo) — planned, not yet begun. This is a genuinely large, multi-session effort; a detailed phased construction plan exists internally and will be worked through incrementally.
