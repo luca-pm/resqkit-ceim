@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type ResolvedConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import fs from 'node:fs';
 import path from 'path';
@@ -27,7 +27,7 @@ function ensureBuildOutDir() {
 
   return {
     name: 'ensure-build-out-dir',
-    configResolved(config) {
+    configResolved(config: ResolvedConfig) {
       outDir = path.resolve(config.root, config.build.outDir);
     },
     writeBundle() {

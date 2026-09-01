@@ -8,6 +8,11 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    /* vite.config.ts imports the plain-JS prerender helpers. Inferring their
+       types from the source beats hand-written .d.ts files, which would be a
+       second copy free to drift from the implementation. checkJs stays off:
+       these are build scripts, not app code. */
+    "allowJs": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
@@ -18,5 +23,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
+  /* Only the config itself. The two prerender helpers it imports are pulled in
+     transitively by allowJs; globbing prerender/**\/*.js instead would also drag
+     in blog.js, which imports app source that needs vite/client types this
+     project deliberately does not load. */
   "include": ["vite.config.ts"]
 }

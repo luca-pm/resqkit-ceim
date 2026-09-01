@@ -12,6 +12,9 @@ app/frontend/dist/
 # Runtime logs
 app/.run-logs/
 
+# TypeScript incremental build cache (written by `npm run typecheck`)
+*.tsbuildinfo
+
 # Environment / secrets
 .env
 **/.env
