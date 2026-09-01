@@ -1,7 +1,7 @@
 # ResQKit — Progress Update
 
-**Date:** 2026-08-19
-**Purpose:** Status update for the mentor, covering what's been built, where it diverges from the original task list, and open questions that need a decision.
+**Date:** 2026-09-02
+**Purpose:** Status update for the mentor, covering what's been built, where it diverges from the original task list, what has been deliberately left unbuilt and why, and open questions that need a decision.
 
 ---
 
@@ -138,6 +138,36 @@ Rough principle behind the ordering: **first what blocks design, then what block
 
 ## 5. Not yet started
 
-- **React Native migration** (full feature parity, Expo) — planned, not yet begun. This is a genuinely large, multi-session effort; a detailed phased construction plan exists internally and will be worked through incrementally.
+- **React Native migration** (full feature parity, Expo) — **now well under way**, not "not started" as this section previously said. The mobile app exists and runs on physical devices: consent, the six-stage emergency wizard, handoff, review, profile, kits, learn, regulations, settings, sign-in, account, history, AI chat, FAQ, contact and tutorials are all ported. Remaining: on-device verification of camera latency, metronome timing and `tel:112` suspend/resume; EAS registration; a shared workspace package to stop `knowledge.ts` and the i18n locales being duplicated per platform.
 - **One-pager → Markdown/Drawio conversion** — waiting on the team to provide the actual source files (PDF/Word/JPEG); most of the content is already present in `InfoExtra/EdwardInput.docx`.
 - **Node/Express research** — parked pending the mentor's answer to open question 1.
+
+## 6. Deliberately deferred — nothing built, nothing faked
+
+These are features that appear in designs, discussions or existing scaffolding but have **no working implementation and no placeholder**. They are listed here so nobody mistakes an absence for an oversight. The team's standing rule is that a simulated version of a feature that cannot really work is worse than its absence, because it hides the gap from everyone including ourselves.
+
+### 6.1 Voice transcription of the emergency call (PVR / ASR)
+
+**State:** the plumbing exists, the feature does not. `Emergency → Institutional voice channel (prototype) → Test voice channel` issues a `pvr/request` call and performs a websocket connect/ping/close, logging each step to `Settings → Institutional actions`. That is all it does. **The app never opens the microphone** — verified by search: there is no `useAudioRecorder`, no `AudioModule`, no recording-permission request and no `RECORD_AUDIO` anywhere in the mobile codebase. The backend's `transcribe_chunk()` waits for audio chunks that no client ever sends.
+
+**Why it is deferred, in order of weight:**
+
+1. **The legal question is unanswered.** Whether the app may record a 112 call — and under what basis it could record bystanders and the victim, who cannot meaningfully consent at a crash site — is open with the legal team (see §4b). Building audio capture before that answer risks writing code that must be deleted, and moves the product into a higher risk category before we know we are allowed to be there.
+2. **It would break the strongest privacy claim we currently have.** Today ResQKit records no audio at all. That is a simple, verifiable, defensible statement. Transcription makes it conditional, and the recording would contain third-party voices captured in the worst possible circumstances.
+3. **No self-hosted engine currently serves it.** `APP_AI_BASE_URL` points at Ollama, which has no `/audio/transcriptions` endpoint and cannot do speech-to-text at any model size — neither `llama3.2:3b` (text) nor `moondream` (vision) has an audio encoder. A separate Whisper server is required.
+4. **The backend can only address one AI endpoint.** `AIHubService` builds a single `AsyncOpenAI` client from one base URL and uses it for both text generation and transcription. Since no single self-hosted server does text, vision and audio, enabling ASR needs a second endpoint setting and a second client, or a gateway in front of both. Small work, but real, and currently unbudgeted.
+
+**What it would take, when unblocked:** an OpenAI-compatible Whisper server (`faster-whisper-server` or `hwdsl2/docker-whisper`) — chosen because the backend already calls `client.audio.transcriptions.create(...)`, so the server is a drop-in and only the base URL changes. Commercial dictation apps (Willow Voice, Wispr Flow) were evaluated and rejected: both are consumer keyboard/dictation products with no embeddable API and no self-hosted option, and both are cloud services, which contradicts the no-egress posture.
+
+### 6.2 Bluetooth Low Energy pairing with the physical ResQKit device
+
+**State:** not started. No BLE code, no device model in the backend, no pairing UI. The "My ResQKit" screen from the marketing designs — showing Kit ID, battery percentage and firmware updates — and the associated "Vehicul" tab are not built.
+
+**Why it is deferred:**
+
+1. **The hardware does not exist yet, in any form this project can address.** There is no device, no prototype, no firmware, no BLE service or characteristic definitions, and no protocol specification anywhere in the repository or the source documents. There is nothing to connect *to*.
+2. **The designs specify appearance, not behaviour.** The Figma screens show a battery percentage and a firmware-update affordance, but nothing defines how battery level is reported, how firmware is delivered and verified, what happens on a failed update, or what a Kit ID even identifies. These are the parts that determine the work; none of them are answered.
+3. **A simulated version would be actively harmful here.** A fake battery indicator on a first-aid kit is not a harmless placeholder — it is a safety claim. A user who sees "87%" for a device that does not exist, or that exists and is not actually being read, may rely on equipment that is flat. This is the clearest case in the product for building nothing rather than something plausible.
+4. **It carries regulatory weight the app does not currently have.** A connected physical device with firmware updates is a materially different product from a guidance app: it raises questions about device classification, update integrity and post-market surveillance that intersect with pre-launch item 20 (medical-device classification).
+
+**What is needed before any work starts:** confirmation that the device is actually being produced, and a hardware specification covering the BLE profile, the battery-reporting mechanism and the firmware-update path. Until then this stays a design, not a backlog item.
