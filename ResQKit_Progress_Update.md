@@ -92,6 +92,17 @@ Flagging these explicitly rather than letting them stay implicit:
 
 ## 4. Open questions for the mentor
 
+**Recommended order, and why:**
+
+| Order | Question | Urgency | Why this position |
+|---|---|---|---|
+| 1st | **2 — React Native confirmation** | **Blocking** | The largest active workstream is proceeding on this assumption. Every week it goes unconfirmed is a week of work that would be discarded if the answer is no. Cheapest possible question to ask, highest cost of being wrong. |
+| 2nd | **1 — Node/Express vs FastAPI** | High | Same risk shape as above: the backend is built and working on FastAPI. If it must move, that should be known before more is layered on top. Currently parked on an inference, not a confirmation. |
+| 3rd | **5 — what should PVR become?** | High | The current design assumes operator audio that cannot exist (conflict 5). Until redirected, any further design in this area is built on a false premise. |
+| 4th | **6 — start the STS conversation?** | Medium-high | Not blocking any code, but institutional lead times are long. The risk here is purely one of starting late, which makes it worth raising early even though nothing waits on it. |
+| 5th | **4 — how far should the prototype go?** | Medium | Roadmap-shaping rather than work-blocking; simulation-by-default already makes the current state safe either way. |
+| 6th | **3 — colour palette** | Low | Marketing owns it, engineering is not touching it, and a new palette is already implemented from their Figma handoff. Answer whenever convenient. |
+
 1. Confirm: is Node/Express intended for a separate future marketing site, not the app backend — or should the app backend actually move off FastAPI?
 2. Confirm: should the mobile app be native React Native (work is proceeding on this basis), rather than the current web app?
 3. Is "Terracotta & Clay" acceptable as one of the palette proposals, or should marketing start from a blank slate?
@@ -102,6 +113,18 @@ Flagging these explicitly rather than letting them stay implicit:
 ## 4b. For the legal team
 
 These are not engineering decisions and should not be settled from an architecture diagram. Flagging them now because each is far cheaper to design around than to retrofit, and two of them gate features that are otherwise ready to build.
+
+**Recommended order, and why:**
+
+| Order | Item | Urgency | Why this position |
+|---|---|---|---|
+| 1st | **3 — ISU dashboard** | **Blocking** | The only one where the answer changes UI we would otherwise build. The dashboard works today and is the near-term demo. If pairing needs its own consent step, designing that now is far cheaper than retrofitting it after the flow is finished. Demoing with fake data is unaffected — this gates real bystander data only. |
+| 2nd | **2 — scene audio / third-party voices** | High | Gates the only buildable form of voice recognition. No code should be written against it until there is a lawful basis, or the work is wasted. Answering early also lets the consent model be designed alongside item 3 rather than twice. |
+| 3rd | **5 — existing health-data consent** | Medium | Already shipped and in users' hands, so this is a review rather than a design input — but that also means any defect is live now. Low effort to check, and it validates the Art. 9 pattern the other items would reuse. |
+| 4th | **4 — is the no-PSAP boundary legal or practical?** | Medium | Cheap to answer and clarifies whether conflict 4 is a product decision the mentor can reverse or a hard constraint. Mostly affects roadmap planning rather than current work. |
+| 5th | **1 — recording the operator** | Low / moot | Currently impossible on both mobile platforms, so nothing depends on it. Worth answering only if a native NG112 integration is ever pursued (which itself depends on mentor question 6). Answering it first would be effort spent on the one item that cannot be built either way. |
+
+Rough principle behind the ordering: **first what blocks design, then what blocks building, then what is already live, then what only affects planning, and last what is not currently possible.**
 
 1. **Is recording the 112 operator lawful?** Note this is currently moot in practice — the platforms make it impossible (conflict 5) — but it determines whether the question is worth revisiting if that ever changes (e.g. a native NG112 integration rather than a phone call). Relevant framing: STS already records 112 calls as standard PSAP practice, so the question is not whether a recording exists, but whether ResQKit is entitled to a second copy, and on what lawful basis.
 
