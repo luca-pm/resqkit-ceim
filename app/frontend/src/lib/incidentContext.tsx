@@ -30,6 +30,10 @@ import {
   saveIncident,
   saveProfile,
   saveSettings,
+  RetainedIncident,
+  closeIncidentWithRetention,
+  deleteRetainedIncident,
+  sweepRetainedIncidents,
   wipeAllLocalData,
 } from './localStore';
 import { applyUiLanguage } from './i18n';
@@ -48,7 +52,13 @@ interface IncidentContextValue {
   updateSettings: (patch: Partial<AppSettings>) => void;
   startIncident: () => IncidentState;
   updateIncident: (patch: Partial<IncidentState>) => void;
+  /** Erase the active incident outright, ignoring retention. */
   discardIncident: () => void;
+  /** Close the active incident, keeping a copy for as long as settings.retention says. */
+  closeIncident: () => void;
+  /** Closed incidents still inside their retention window, newest first. */
+  retained: RetainedIncident[];
+  deleteRetained: (id: string) => void;
   wipeEverything: () => void;
   logInstitutional: (entry: Omit<InstitutionalLogEntry, 'id' | 'at'>) => void;
   clearInstitutionalLog: () => void;
@@ -63,6 +73,7 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [incident, setIncident] = useState<IncidentState | null>(null);
   const [institutionalLog, setInstitutionalLog] = useState<InstitutionalLogEntry[]>([]);
+  const [retained, setRetained] = useState<RetainedIncident[]>([]);
   const [online, setOnline] = useState<boolean>(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
@@ -75,6 +86,8 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     applyUiLanguage(loadedSettings.uiLanguage);
     setIncident(loadIncident());
     setInstitutionalLog(loadInstitutionalLog());
+    // Sweep before anything renders, so an expired incident is never readable.
+    setRetained(sweepRetainedIncidents());
     setReady(true);
   }, []);
 
@@ -140,6 +153,17 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIncident(null);
   }, []);
 
+  const closeIncident = useCallback(() => {
+    setIncident((prev) => {
+      if (prev) setRetained(closeIncidentWithRetention(prev, settings.retention));
+      return null;
+    });
+  }, [settings.retention]);
+
+  const deleteRetained = useCallback((id: string) => {
+    setRetained(deleteRetainedIncident(id));
+  }, []);
+
   const wipeEverything = useCallback(() => {
     wipeAllLocalData();
     setConsent(EMPTY_CONSENT);
@@ -180,6 +204,9 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       startIncident,
       updateIncident,
       discardIncident,
+      closeIncident,
+      retained,
+      deleteRetained,
       wipeEverything,
       logInstitutional,
       clearInstitutionalLog: clearInstitutionalLogCallback,
@@ -199,6 +226,9 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       startIncident,
       updateIncident,
       discardIncident,
+      closeIncident,
+      retained,
+      deleteRetained,
       wipeEverything,
       logInstitutional,
       clearInstitutionalLogCallback,

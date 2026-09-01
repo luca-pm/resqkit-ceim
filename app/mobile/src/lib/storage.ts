@@ -23,6 +23,7 @@ const KEY_INCIDENT = 'resqkit.incident.v1';
 const KEY_SETTINGS = 'resqkit.settings.v1';
 const KEY_INSTITUTIONAL_LOG = 'resqkit.institutional_log.v1';
 const KEY_CHAT_HISTORY = 'resqkit.chat_history.v1';
+const KEY_RETAINED = 'resqkit.retained.v1';
 
 /** How many institutional actions are kept for the trace view before the oldest are dropped. */
 const INSTITUTIONAL_LOG_LIMIT = 100;
@@ -51,7 +52,36 @@ export interface SafetyProfile {
   language: string;
 }
 
-export type RetentionChoice = 'session' | '24h' | '7d';
+export type RetentionChoice = 'session' | '24h' | '7d' | '30d';
+
+/**
+ * How long a closed incident stays on this device, in milliseconds.
+ *
+ * `session` is 0 — the incident is erased the moment it is closed. The others
+ * keep it in KEY_RETAINED until it expires, and a sweep on every app start
+ * removes anything past its date. This is what makes the retention control on
+ * the review screen real: it was previously recorded and never acted on, so a
+ * user who chose "keep for 7 days" still lost the incident immediately.
+ *
+ * Retention only ever governs the copy on this device. An incident explicitly
+ * archived to an account is a separate, deliberate act and is never touched by
+ * the sweep — it stays until the user deletes it.
+ */
+export const RETENTION_MS: Record<RetentionChoice, number> = {
+  session: 0,
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+};
+
+/** A closed incident being held on-device until its retention expires. */
+export interface RetainedIncident {
+  id: string;
+  incident: IncidentState;
+  closedAt: string;
+  expiresAt: string;
+  retention: RetentionChoice;
+}
 
 export interface AppSettings {
   retention: RetentionChoice;
@@ -158,7 +188,14 @@ export const EMPTY_PROFILE: SafetyProfile = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  retention: 'session',
+  /**
+   * Seven days by default. An incident is frequently needed after the fact —
+   * an insurance claim, a workplace report, a statement — and a bystander has
+   * no way to know that at the moment they close it. Erasing by default made
+   * the common case unrecoverable to protect against a risk the user can
+   * already remove themselves at any time from the review screen.
+   */
+  retention: '7d',
   localCounters: false,
   lastContext: null,
   /**
@@ -261,6 +298,69 @@ export async function loadIncident(): Promise<IncidentState | null> {
 export const saveIncident = (value: IncidentState) => write(KEY_INCIDENT, value);
 export const clearIncident = () => remove(KEY_INCIDENT);
 
+export async function loadRetainedIncidents(): Promise<RetainedIncident[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY_RETAINED);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as RetainedIncident[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Drop everything past its expiry date and persist the result.
+ *
+ * Called once on app start rather than from a timer: the app is not running
+ * most of the time, so a background schedule would be both unreliable and
+ * pointless. What matters is that expired data is never readable, and a sweep
+ * before anything renders guarantees that.
+ */
+export async function sweepRetainedIncidents(): Promise<RetainedIncident[]> {
+  const all = await loadRetainedIncidents();
+  const now = Date.now();
+  const live = all.filter((r) => new Date(r.expiresAt).getTime() > now);
+  if (live.length !== all.length) await write(KEY_RETAINED, live);
+  return live;
+}
+
+/**
+ * Close the active incident, honouring the chosen retention.
+ *
+ * 'session' erases it outright. Anything else moves it into the retained store
+ * with an expiry and clears the active slot, so the app returns to standby and
+ * a new incident can be started — the retained copy is history, not something
+ * still in progress.
+ */
+export async function closeIncidentWithRetention(
+  incident: IncidentState,
+  retention: RetentionChoice,
+): Promise<RetainedIncident[]> {
+  await clearIncident();
+  if (retention === 'session') return loadRetainedIncidents();
+
+  const now = new Date();
+  const entry: RetainedIncident = {
+    id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    incident,
+    closedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + RETENTION_MS[retention]).toISOString(),
+    retention,
+  };
+  const next = [entry, ...(await loadRetainedIncidents())];
+  await write(KEY_RETAINED, next);
+  return next;
+}
+
+export async function deleteRetainedIncident(id: string): Promise<RetainedIncident[]> {
+  const next = (await loadRetainedIncidents()).filter((r) => r.id !== id);
+  await write(KEY_RETAINED, next);
+  return next;
+}
+
+export const clearRetainedIncidents = () => remove(KEY_RETAINED);
+
 export async function loadInstitutionalLog(): Promise<InstitutionalLogEntry[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY_INSTITUTIONAL_LOG);
@@ -286,9 +386,15 @@ export const clearInstitutionalLog = () => remove(KEY_INSTITUTIONAL_LOG);
 /** Full local erasure — backs the "Delete everything" control. */
 export async function wipeAllLocalData(): Promise<void> {
   await Promise.all(
-    [KEY_CONSENT, KEY_PROFILE, KEY_INCIDENT, KEY_SETTINGS, KEY_INSTITUTIONAL_LOG, KEY_CHAT_HISTORY].map(
-      (k) => remove(k),
-    ),
+    [
+      KEY_CONSENT,
+      KEY_PROFILE,
+      KEY_INCIDENT,
+      KEY_SETTINGS,
+      KEY_INSTITUTIONAL_LOG,
+      KEY_CHAT_HISTORY,
+      KEY_RETAINED,
+    ].map((k) => remove(k)),
   );
 }
 

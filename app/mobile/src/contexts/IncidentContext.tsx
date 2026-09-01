@@ -27,11 +27,14 @@ import {
   EMPTY_PROFILE,
   IncidentState,
   InstitutionalLogEntry,
+  RetainedIncident,
   SafetyProfile,
   appendInstitutionalLog,
   clearIncident,
   clearInstitutionalLog,
   clearProfile,
+  closeIncidentWithRetention,
+  deleteRetainedIncident,
   loadConsent,
   loadIncident,
   loadInstitutionalLog,
@@ -40,6 +43,7 @@ import {
   saveConsent,
   saveIncident,
   saveProfile,
+  sweepRetainedIncidents,
   wipeAllLocalData,
 } from '@/lib/storage';
 import { useSettings } from './SettingsContext';
@@ -58,7 +62,13 @@ interface IncidentContextValue {
   updateSettings: (patch: Partial<AppSettings>) => void;
   startIncident: () => IncidentState;
   updateIncident: (patch: Partial<IncidentState>) => void;
+  /** Erase the active incident outright, ignoring retention. */
   discardIncident: () => void;
+  /** Close the active incident, keeping a copy for as long as settings.retention says. */
+  closeIncident: () => void;
+  /** Closed incidents still inside their retention window, newest first. */
+  retained: RetainedIncident[];
+  deleteRetained: (id: string) => void;
   wipeEverything: () => void;
   logInstitutional: (entry: Omit<InstitutionalLogEntry, 'id' | 'at'>) => void;
   clearInstitutionalLog: () => void;
@@ -74,6 +84,7 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [profile, setProfile] = useState<SafetyProfile>(EMPTY_PROFILE);
   const [incident, setIncident] = useState<IncidentState | null>(null);
   const [institutionalLog, setInstitutionalLog] = useState<InstitutionalLogEntry[]>([]);
+  const [retained, setRetained] = useState<RetainedIncident[]>([]);
 
   const networkState = useNetworkState();
   // Treat "unknown" as online: a false offline banner during an emergency is
@@ -82,16 +93,21 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     void (async () => {
-      const [loadedConsent, loadedProfile, loadedIncident, loadedLog] = await Promise.all([
-        loadConsent(),
-        loadProfile(),
-        loadIncident(),
-        loadInstitutionalLog(),
-      ]);
+      // The sweep runs before anything renders, so an expired incident is
+      // never readable even for a frame.
+      const [loadedConsent, loadedProfile, loadedIncident, loadedLog, liveRetained] =
+        await Promise.all([
+          loadConsent(),
+          loadProfile(),
+          loadIncident(),
+          loadInstitutionalLog(),
+          sweepRetainedIncidents(),
+        ]);
       setConsent(loadedConsent);
       setProfile(loadedProfile);
       setIncident(loadedIncident);
       setInstitutionalLog(loadedLog);
+      setRetained(liveRetained);
       setHydrated(true);
     })();
   }, []);
@@ -138,12 +154,26 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIncident(null);
   }, []);
 
+  const closeIncident = useCallback(() => {
+    setIncident((prev) => {
+      if (prev) {
+        void closeIncidentWithRetention(prev, settings.retention).then(setRetained);
+      }
+      return null;
+    });
+  }, [settings.retention]);
+
+  const deleteRetained = useCallback((id: string) => {
+    void deleteRetainedIncident(id).then(setRetained);
+  }, []);
+
   const wipeEverything = useCallback(() => {
     void wipeAllLocalData();
     setConsent(EMPTY_CONSENT);
     setProfile(EMPTY_PROFILE);
     setIncident(null);
     setInstitutionalLog([]);
+    setRetained([]);
   }, []);
 
   const logInstitutional = useCallback((entry: Omit<InstitutionalLogEntry, 'id' | 'at'>) => {
@@ -182,6 +212,9 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       startIncident,
       updateIncident,
       discardIncident,
+      closeIncident,
+      retained,
+      deleteRetained,
       wipeEverything,
       logInstitutional,
       clearInstitutionalLog: clearInstitutionalLogCallback,
@@ -202,6 +235,9 @@ export const IncidentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       startIncident,
       updateIncident,
       discardIncident,
+      closeIncident,
+      retained,
+      deleteRetained,
       wipeEverything,
       logInstitutional,
       clearInstitutionalLogCallback,

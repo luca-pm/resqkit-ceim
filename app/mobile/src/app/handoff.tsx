@@ -29,8 +29,16 @@ import { client } from '@/lib/apiClient';
 import { buildBrief } from '@/lib/brief';
 import { buildNgProtocolPayload, terminateInstitutionalSession } from '@/lib/institutionalActions';
 import { RESPONDER_PRIORITIES } from '@/lib/knowledge';
-import { profileHasHealthData } from '@/lib/storage';
+import { RetentionChoice, profileHasHealthData } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
+
+/** Human phrasing for the retention window, mirroring review.tsx. */
+const RETENTION_WINDOW: Record<RetentionChoice, string> = {
+  session: 'no time at all',
+  '24h': '24 hours',
+  '7d': '7 days',
+  '30d': '30 days',
+};
 
 export default function HandoffScreen() {
   const router = useRouter();
@@ -42,6 +50,7 @@ export default function HandoffScreen() {
     settings,
     logInstitutional,
     discardIncident,
+    closeIncident,
     startIncident,
   } = useIncident();
   const colors = useTokenColors();
@@ -120,19 +129,26 @@ export default function HandoffScreen() {
    * does not exist.
    */
   const endIncident = () => {
+    const keeps = settings.retention !== 'session';
     Alert.alert(
       'End this incident?',
-      'It will be closed and deleted from this device. If you want to keep a copy or archive it to your account, review it first.',
+      keeps
+        ? `It will be closed and kept on this device for ${RETENTION_WINDOW[settings.retention]}, then deleted automatically. Review lets you change that or archive it to your account.`
+        : 'It will be closed and deleted from this device straight away. If you want to keep a copy or archive it to your account, review it first.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Review first', onPress: () => router.push('/review') },
         {
-          text: 'End and delete',
+          text: keeps ? 'End incident' : 'End and delete',
           style: 'destructive',
           onPress: () => {
             void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
-            discardIncident();
-            toast.success('Incident closed and deleted from this device.');
+            closeIncident();
+            toast.success(
+              keeps
+                ? `Incident closed. Kept for ${RETENTION_WINDOW[settings.retention]}.`
+                : 'Incident closed and deleted from this device.',
+            );
             router.replace('/');
           },
         },

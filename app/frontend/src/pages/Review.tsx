@@ -30,9 +30,27 @@ import { CONTEXTS, procedureById } from '@/lib/knowledge';
 import { RetentionChoice } from '@/lib/localStore';
 
 const RETENTION_LABELS: Record<RetentionChoice, string> = {
-  session: 'Delete as soon as I close the incident (default)',
+  session: 'Delete as soon as I close the incident',
   '24h': 'Keep on this device for 24 hours',
-  '7d': 'Keep on this device for 7 days',
+  '7d': 'Keep on this device for 7 days (default)',
+  '30d': 'Keep on this device for 30 days',
+};
+
+const RETENTION_HINTS: Record<RetentionChoice, string> = {
+  session: 'Nothing is kept. Export or archive it first if you might need it.',
+  '24h': 'Long enough to write up what happened.',
+  '7d': 'Covers most insurance and workplace reporting deadlines.',
+  '30d': 'The longest available. Only choose it if you know you need it.',
+};
+
+const RETENTION_ORDER: RetentionChoice[] = ['session', '24h', '7d', '30d'];
+
+/** Human phrasing for the confirmation copy, e.g. "kept for 7 days". */
+const RETENTION_WINDOW: Record<RetentionChoice, string> = {
+  session: 'no time at all',
+  '24h': '24 hours',
+  '7d': '7 days',
+  '30d': '30 days',
 };
 
 const Review: React.FC = () => {
@@ -42,7 +60,7 @@ const Review: React.FC = () => {
     profile,
     settings,
     updateSettings,
-    discardIncident,
+    closeIncident,
     wipeEverything,
     logInstitutional,
   } = useIncident();
@@ -124,10 +142,14 @@ const Review: React.FC = () => {
     }
   };
 
-  const closeIncident = () => {
+  const finishIncident = () => {
     if (incident) void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
-    discardIncident();
-    toast.success('Incident deleted from this device.');
+    closeIncident();
+    toast.success(
+      settings.retention === 'session'
+        ? 'Incident closed and deleted from this device.'
+        : `Incident closed. Kept for ${RETENTION_WINDOW[settings.retention]}, then deleted automatically.`,
+    );
     navigate('/');
   };
 
@@ -189,7 +211,7 @@ const Review: React.FC = () => {
               <CardDescription>Storage limitation, GDPR Article 5(1)(e).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {(Object.keys(RETENTION_LABELS) as RetentionChoice[]).map((key) => (
+              {RETENTION_ORDER.map((key) => (
                 <button
                   key={key}
                   type="button"
@@ -202,8 +224,15 @@ const Review: React.FC = () => {
                   }`}
                 >
                   {RETENTION_LABELS[key]}
+                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                    {RETENTION_HINTS[key]}
+                  </span>
                 </button>
               ))}
+              <p className="pt-1 text-xs text-muted-foreground">
+                This governs the copy on this device only. Anything you archive to your account is
+                separate and stays until you delete it there.
+              </p>
             </CardContent>
           </Card>
 
@@ -261,9 +290,11 @@ const Review: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Button size="lg" variant="destructive" className="w-full" onClick={closeIncident}>
+          <Button size="lg" variant="destructive" className="w-full" onClick={finishIncident}>
             <Trash2 className="mr-2 h-5 w-5" aria-hidden="true" />
-            Close incident and delete it from this device
+            {settings.retention === 'session'
+              ? 'Close incident and delete it now'
+              : `Close incident (kept ${RETENTION_WINDOW[settings.retention]})`}
           </Button>
         </>
       ) : (

@@ -31,7 +31,7 @@ import { useTokenColors } from '@/lib/tokenColors';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { consent, profile, incident, startIncident, settings, logInstitutional, discardIncident } =
+  const { consent, profile, incident, startIncident, settings, logInstitutional, closeIncident } =
     useIncident();
   const colors = useTokenColors();
 
@@ -52,17 +52,20 @@ export default function HomeScreen() {
    */
   const endIncident = () => {
     if (!incident) return;
+    const keeps = settings.retention !== 'session';
     Alert.alert(
       'End this incident?',
-      'It will be closed and deleted from this device. To keep a copy or archive it to your account, open it and use Review instead.',
+      keeps
+        ? 'It will be closed and kept on this device for the retention period you chose, then deleted automatically. Open it and use Review to change that or archive it to your account.'
+        : 'It will be closed and deleted from this device straight away. To keep a copy or archive it to your account, open it and use Review instead.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'End and delete',
+          text: keeps ? 'End incident' : 'End and delete',
           style: 'destructive',
           onPress: () => {
             void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
-            discardIncident();
+            closeIncident();
             toast.success('Incident closed. You can start a new one.');
           },
         },

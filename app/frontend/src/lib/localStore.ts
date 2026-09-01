@@ -13,6 +13,7 @@ import { CONTENT_PACK_VERSION, ContextId } from './knowledge';
 const KEY_CONSENT = 'resqkit.consent.v1';
 const KEY_PROFILE = 'resqkit.profile.v1';
 const KEY_INCIDENT = 'resqkit.incident.v1';
+const KEY_RETAINED = 'resqkit.retained.v1';
 const KEY_SETTINGS = 'resqkit.settings.v1';
 const KEY_INSTITUTIONAL_LOG = 'resqkit.institutional_log.v1';
 
@@ -41,7 +42,29 @@ export interface SafetyProfile {
   language: string;
 }
 
-export type RetentionChoice = 'session' | '24h' | '7d';
+export type RetentionChoice = 'session' | '24h' | '7d' | '30d';
+
+/**
+ * How long a closed incident stays in this browser, in milliseconds.
+ * Mirrors app/mobile/src/lib/storage.ts — the retention promise must mean the
+ * same thing on both platforms. `session` is 0: erased the moment it closes.
+ * Retention governs only the local copy; an incident archived to an account is
+ * a separate deliberate act and is never swept.
+ */
+export const RETENTION_MS: Record<RetentionChoice, number> = {
+  session: 0,
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+};
+
+export interface RetainedIncident {
+  id: string;
+  incident: IncidentState;
+  closedAt: string;
+  expiresAt: string;
+  retention: RetentionChoice;
+}
 
 export interface AppSettings {
   retention: RetentionChoice;
@@ -146,7 +169,10 @@ export const EMPTY_PROFILE: SafetyProfile = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  retention: 'session',
+  // Seven days by default: an incident is frequently needed after the fact
+  // (insurance claim, workplace report) and the user cannot know that at the
+  // moment they close it. Mirrors app/mobile/src/lib/storage.ts.
+  retention: '7d',
   localCounters: false,
   lastContext: null,
   realDataMode: false,
@@ -243,9 +269,59 @@ export const appendInstitutionalLog = (
 export const clearInstitutionalLog = () => window.localStorage.removeItem(KEY_INSTITUTIONAL_LOG);
 export const clearIncident = () => window.localStorage.removeItem(KEY_INCIDENT);
 
+export const loadRetainedIncidents = (): RetainedIncident[] => {
+  try {
+    const raw = window.localStorage.getItem(KEY_RETAINED);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as RetainedIncident[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/** Drop everything past its expiry. Runs on load, before anything renders. */
+export const sweepRetainedIncidents = (): RetainedIncident[] => {
+  const all = loadRetainedIncidents();
+  const live = all.filter((r) => new Date(r.expiresAt).getTime() > Date.now());
+  if (live.length !== all.length) write(KEY_RETAINED, live);
+  return live;
+};
+
+/**
+ * Close the active incident, honouring the chosen retention: 'session' erases
+ * it, anything else moves it to the retained store with an expiry and frees
+ * the active slot so a new incident can start.
+ */
+export const closeIncidentWithRetention = (
+  incident: IncidentState,
+  retention: RetentionChoice,
+): RetainedIncident[] => {
+  clearIncident();
+  if (retention === 'session') return loadRetainedIncidents();
+
+  const now = new Date();
+  const entry: RetainedIncident = {
+    id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    incident,
+    closedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + RETENTION_MS[retention]).toISOString(),
+    retention,
+  };
+  const next = [entry, ...loadRetainedIncidents()];
+  write(KEY_RETAINED, next);
+  return next;
+};
+
+export const deleteRetainedIncident = (id: string): RetainedIncident[] => {
+  const next = loadRetainedIncidents().filter((r) => r.id !== id);
+  write(KEY_RETAINED, next);
+  return next;
+};
+
 /** Full local erasure — backs the "Delete everything" control. */
 export const wipeAllLocalData = () => {
-  [KEY_CONSENT, KEY_PROFILE, KEY_INCIDENT, KEY_SETTINGS, KEY_INSTITUTIONAL_LOG].forEach((k) => {
+  [KEY_CONSENT, KEY_PROFILE, KEY_INCIDENT, KEY_SETTINGS, KEY_INSTITUTIONAL_LOG, KEY_RETAINED].forEach((k) => {
     try {
       window.localStorage.removeItem(k);
     } catch {

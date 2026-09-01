@@ -136,6 +136,25 @@ Rough principle behind the ordering: **first what blocks design, then what block
 
 5. **Health data in the Safety Profile and the handoff brief.** Already implemented as explicit, separate, withdrawable consent (GDPR Art. 9) stored on-device only. Worth a review that the current consent wording and the "archive to my account" path actually satisfy what the team believes they satisfy.
 
+6. **Is a 30-day on-device retention option defensible under Art. 5(1)(e)?** See §4c. The data never leaves the device, the period is the user's explicit choice rather than a default, and it is deletable at any time from two places — but storage limitation sets no fixed number, and the incident may carry Art. 9 health data from the Safety Profile. The option is **already built and live**; if the answer is no, removing it is a one-line change. Slot this at **3rd** in the order above if 30 days is likely to be contentious, otherwise last — nothing is blocked on it either way, since 24h and 7d are uncontroversial.
+
+## 4c. Retention — now enforced, with one question outstanding
+
+The retention control on the review screen previously recorded the user's choice and never acted on it: closing an incident deleted it immediately whatever had been selected. That is now implemented for real on both platforms. A closed incident moves into a separate on-device store with an expiry date, a sweep on every app start removes anything past it, and the kept incidents are listed under Istoric → *On this device* with a countdown and a delete button.
+
+Four options are now offered, and the **default has changed from immediate deletion to 7 days**. An incident is frequently needed after the fact — an insurance claim, a workplace report, a witness statement — and a bystander cannot know that at the moment they close it. Erasing by default made the common case unrecoverable in order to guard against a risk the user can already remove themselves at any time.
+
+| Option | Behaviour |
+|---|---|
+| Delete on close | Erased the moment the incident is closed |
+| 24 hours | Kept on the device, then deleted automatically |
+| **7 days (default)** | Covers most insurance and workplace reporting deadlines |
+| 30 days | The longest offered — **pending the legal question below** |
+
+**Boundary that matters:** retention governs only the copy on the device. An incident explicitly archived to an account is a separate, deliberate act, is never touched by the sweep, and stays until the user deletes it. Istoric now shows the two stores as separate sections so they cannot be confused.
+
+**Question for the legal team (added as item 7 in §4b):** is a 30-day on-device retention option defensible under GDPR Article 5(1)(e)? Engineering's reading is that it should be, because the data never leaves the device, the period is the user's own explicit choice rather than a default, and it can be deleted at any moment from two places in the app — but storage limitation has no fixed number in the regulation, the Safety Profile can carry Article 9 special-category health data, and this is a judgement the engineering team is not qualified to make. **The option is built and live.** If the answer is no, removing it is a one-line change.
+
 ## 5. Not yet started
 
 - **React Native migration** (full feature parity, Expo) — **now well under way**, not "not started" as this section previously said. The mobile app exists and runs on physical devices: consent, the six-stage emergency wizard, handoff, review, profile, kits, learn, regulations, settings, sign-in, account, history, AI chat, FAQ, contact and tutorials are all ported. Remaining: on-device verification of camera latency, metronome timing and `tel:112` suspend/resume; EAS registration; a shared workspace package to stop `knowledge.ts` and the i18n locales being duplicated per platform.
