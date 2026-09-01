@@ -65,12 +65,39 @@ Flagging these explicitly rather than letting them stay implicit:
 3. **Color palette ("Terracotta & Clay") was already implemented** in code before the "propose 2-3 palettes" task was assigned. Now explicitly parked — marketing owns this going forward, engineering isn't touching it further.
 4. **The team's own MVP scope document is stricter than the mentor's original architecture sketch.** `ResQKit_MVP_Screens_and_User_Flow.md` defines "no PSAP/112 data channel in MVP" as an explicit, hard boundary. The mentor's own diagram (NG112 connection, websocket streaming, NG protocol transmission) sketches further than that. This has been reconciled in code by making all of it simulated-by-default (see §2) — but the underlying scope question (how far the prototype should go before real institutional engagement) hasn't been put to the mentor directly.
 
+5. **"Passive voice recognition" of the 112 call cannot be built on iOS or Android.** This is the most consequential conflict found so far, because it is a hard platform limit rather than a scope decision — no authorization, budget or engineering effort changes it.
+
+   The architecture sketch implies the app can capture the audio of the user's call with the 112 operator and transcribe it. Both mobile platforms forbid this to third-party apps:
+
+   - **iOS** has blocked third-party microphone access during a cellular call for over a decade. Apple's own call recording is available only within the Phone app; third-party apps receive no call audio at all.
+   - **Android** restricted call-recording APIs in Android 10, and Google banned the Accessibility-API workaround in Play Store policy in **May 2022**. A third-party app can at best capture the user's own microphone — never the remote party.
+
+   The only apps that genuinely record both sides do so by **conferencing the call through their own bridge number**, which is not an acceptable pattern for an emergency application.
+
+   **What remains buildable:** transcribing *the bystander describing the scene* — before or after the 112 call, not during it — and feeding that into the rescuer handoff brief. That is still valuable (hands-free scene capture while giving first aid), but it is a materially different feature from what the diagram implies, and downstream design should not assume operator audio exists.
+
+   **Current implementation status:** the backend pipeline (`services/incident_stream.py`, `transcribe_chunk`) is built and works — it accepts short audio clips over a websocket and transcribes each via the self-hosted model. Nothing captures audio and feeds it, and the in-app "Test voice channel" button is a **connectivity test only** (it opens the socket, round-trips a ping, and logs both ends). No microphone is accessed anywhere in the app today.
+
+   **Two questions that should be settled before any audio capture is built** (they are cheaper to design for now than to retrofit):
+   - Capturing audio at an incident scene records **bystanders and responders who never consented**, not just the user — special-category data under GDPR with third-party voices in it.
+   - Whether recording the operator is lawful at all is a question for qualified Romanian/GDPR counsel, not an engineering decision. Note that **STS already records 112 calls** as standard PSAP practice, so the relevant question is not whether a recording exists but who is entitled to a second copy.
+
+   Sources: [iOS/Android call-recording restrictions](https://www.notta.ai/en/blog/best-call-recorder-app), [platform limitations overview](https://hinoter.com/blog/how-to-record-a-phone-call-on-iphone-android-2026)
+
+6. **NG112 is not a future/pending standard — Romania is among its most advanced deployments.** An assumption worth correcting, because it changes what "waiting for NG112" means. NG112 is an existing ETSI/EENA standard; the EECC deadline for member-state roadmaps was **December 2023**. STS already operates Romania's ESInet and Next Generation Core Services, with roughly 41 stage-1 PSAPs and ~130 stage-2 dispatch centres.
+
+   The blocker for ResQKit is therefore **not** that the standard needs approving — it is obtaining STS authorization for this specific application to act as a data source into infrastructure that already exists. That is an accreditation/partnership conversation which can begin now, and it is institutional rather than technical.
+
+   Sources: [EENA — NG112 implementation in Europe](https://eena.org/blog/ng112-implementation-in-europe-demystifying-the-esinet-and-next-generation-core-services-2/), [STS/ITU — Romania 112 modernisation, April 2026](https://www.itu.int/en/ITU-T/Workshops-and-Seminars/2026/0414/Documents/Florin%20Feticu.pdf)
+
 ## 4. Open questions for the mentor
 
 1. Confirm: is Node/Express intended for a separate future marketing site, not the app backend — or should the app backend actually move off FastAPI?
 2. Confirm: should the mobile app be native React Native (work is proceeding on this basis), rather than the current web app?
 3. Is "Terracotta & Clay" acceptable as one of the palette proposals, or should marketing start from a blank slate?
 4. How far should the NG112 / PVR / NG-protocol prototype go before real institutional engagement (STS/ANCOM) is needed — is simulation-only sufficient for the foreseeable roadmap, or should work toward a real channel start soon?
+5. Given that capturing 112 call audio is impossible on both mobile platforms (conflict 5), what should "passive voice recognition" become? The realistic option is transcribing the bystander's scene description before/after the call, into the handoff brief. Confirm that is the intended direction before further design assumes operator audio.
+6. Since NG112 infrastructure already exists in Romania (conflict 6), should someone open an accreditation conversation with STS now? This is not blocked on engineering, and lead times for institutional processes are typically long — starting late is the main risk.
 
 ## 5. Not yet started
 

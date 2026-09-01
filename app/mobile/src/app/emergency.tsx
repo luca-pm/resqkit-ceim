@@ -418,6 +418,10 @@ export default function EmergencyScreen() {
                     logInstitutional,
                     onSession,
                   );
+                  // Without this the action is completely silent — it only
+                  // writes to the trace on another screen, which reads as a
+                  // dead button.
+                  toast.success('Voice channel test logged. See Settings → Institutional actions.');
                 } finally {
                   setTestingVoiceChannel(false);
                 }
