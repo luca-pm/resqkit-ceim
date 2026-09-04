@@ -16,6 +16,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { CONTENT_PACK_VERSION, ContextId } from './knowledge';
+// Type-only: erased at compile time, so this does not create a runtime
+// circular dependency even though ceim.ts imports IncidentState from here.
+import type { CeimIncident } from './ceim';
 
 const KEY_CONSENT = 'resqkit.consent.v1';
 const KEY_PROFILE = 'resqkit.profile.v1';
@@ -119,7 +122,9 @@ export type InstitutionalAction =
   | 'kit.confirm'
   | 'procedure.step'
   | 'ng_protocol.build'
-  | 'session.terminate';
+  | 'session.terminate'
+  | 'interview.answer'
+  | 'ceim.generate';
 
 export interface InstitutionalLogEntry {
   id: string;
@@ -134,6 +139,14 @@ export interface CompletedStep {
   index: number;
   title: string;
   at: string;
+}
+
+/** One answered (or left blank) AI-interview prompt — see lib/ceim.ts. */
+export interface InterviewAnswer {
+  promptId: string;
+  promptText: string;
+  answerText: string;
+  answeredAt: string;
 }
 
 export interface IncidentState {
@@ -165,6 +178,14 @@ export interface IncidentState {
   reporterPhone: string;
   includeHealthData: boolean;
   contentPackVersion: string;
+  /** Free-text answers from the AI scene interview — see lib/ceim.ts. Empty
+   * until the interview stage runs; the two CPR-routing fields above
+   * (responsive/breathing) are never derived from these. */
+  interviewAnswers: InterviewAnswer[];
+  interviewSkipped: boolean;
+  ceimReport: CeimIncident | null;
+  ceimGeneratedAt: string | null;
+  ceimDegraded: boolean;
 }
 
 export const EMPTY_CONSENT: ConsentState = {
@@ -247,6 +268,11 @@ export const newIncident = (): IncidentState => ({
   reporterPhone: '',
   includeHealthData: false,
   contentPackVersion: CONTENT_PACK_VERSION,
+  interviewAnswers: [],
+  interviewSkipped: false,
+  ceimReport: null,
+  ceimGeneratedAt: null,
+  ceimDegraded: false,
 });
 
 /** Merge-read helper: unknown/missing keys fall back to the given defaults. */

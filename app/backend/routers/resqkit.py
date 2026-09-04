@@ -11,6 +11,8 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from schemas.ceim import CeimGenerateRequest, CeimGenerateResponse
+from services.ceim import CeimService
 from services.resqkit_ai import NARRATIVE_MODEL, RECOGNITION_MODEL, ResQKitAIService
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/resqkit", tags=["resqkit"])
 
 _service = ResQKitAIService()
+_ceim_service = CeimService()
 
 
 class RecognizeKitRequest(BaseModel):
@@ -84,6 +87,27 @@ async def chat(payload: ChatRequest):
     any model call; see services/resqkit_ai.py for the full rationale.
     """
     return await _service.chat([m.model_dump() for m in payload.messages])
+
+
+@router.post("/ceim/generate", response_model=CeimGenerateResponse)
+async def generate_ceim(payload: CeimGenerateRequest):
+    """
+    Structure the AI scene interview's free-text answers, plus already-known
+    button/sensor facts, into one Canonical Emergency Incident Model report.
+
+    Unauthenticated and unconditional, like the other ResQKit AI endpoints -
+    this is a core app feature, not institutional traffic (that gate lives
+    client-side in institutionalActions.ts, on whether the result gets
+    logged to a backend session, not on whether it gets generated).
+
+    Always 200 with a `degraded` flag on model failure - the interview must
+    never dead-end the emergency flow.
+    """
+    return await _ceim_service.generate(
+        known_facts=payload.known_facts,
+        interview_answers=payload.interview_answers,
+        content_pack_version=payload.content_pack_version,
+    )
 
 
 @router.get("/health")

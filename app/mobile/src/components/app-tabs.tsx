@@ -58,6 +58,7 @@ export default function AppTabs() {
       <Tabs.Screen name="consent" options={{ href: null }} />
       <Tabs.Screen name="emergency" options={{ href: null }} />
       <Tabs.Screen name="handoff" options={{ href: null }} />
+      <Tabs.Screen name="report" options={{ href: null }} />
       <Tabs.Screen name="review" options={{ href: null }} />
       <Tabs.Screen name="incident-detail" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />

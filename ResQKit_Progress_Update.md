@@ -1,6 +1,6 @@
 # ResQKit — Progress Update
 
-**Date:** 2026-09-02
+**Date:** 2026-09-04
 **Purpose:** Status update for the mentor, covering what's been built, where it diverges from the original task list, what has been deliberately left unbuilt and why, and open questions that need a decision.
 
 ---
@@ -55,6 +55,29 @@ The MVP scope document is, at this point, close to fully implemented. Two screen
 - Verified end-to-end: two browser tabs, one as sender (real data mode on, progressing through the wizard), one as dashboard (entering the code) — events appear on the dashboard within the same second they happen on the sender, no polling.
 
 **Also this session:** local git version control initialized for the project (no remote yet — that's still the team's own step).
+
+## 2b. Canonical Emergency Incident Model (CEIM) — new, this session
+
+Built in response to the mentor's 2026-09-02 direction (see `ResQKit_Canonical_Incident_Model.md` for the full design, plain-language EDXL-SitRep/NG112 background, and verification). Summary:
+
+- **The AI interview flow is live**: after confirming a 112 call, a bystander answers up to 5 fixed, optional, open-ended prompts (skippable at any point), then one call structures everything into a versioned, provenance-tracked internal model (`CeimIncident` — every fact carries where it came from and how confident the app is). This is additive to the existing fixed-button triage, not a replacement — the two life-critical CPR-routing fields (`responsive`/`breathing`) are never AI-sourced, enforced in code and covered by an adversarial test (contradictory free text could not change them in either of two test runs).
+- **The existing NG112/PIDF-LO payload builder now adapts from CEIM** when a report exists, with zero breaking change to its existing request/response contract — verified by a before/after regression check.
+- **EDXL-SitRep adapter and a Romania/STS-specific format are explicitly not built** — see the doc's §6–7 for why, matching the mentor's own "don't guess STS's format" instruction.
+- **The "we send this report to any institution" framing was deliberately not implemented as literal transmission.** Nothing in this app sends data anywhere today (see conflict 4/5 below, unchanged by this work). The report is built in a shareable, universal format the user explicitly shares via the OS share sheet — the exact same non-transmission posture as the pre-existing NG protocol prototype.
+
+### Overlap with Matei's backend (`github.com/RosogaMatei/resqkit`)
+
+Relayed by the team: Matei's backend was built on a different premise (streaming live 112-call audio to a server), and the mentor has separately asked Matei to reconcile with Luca's backend under Mircea's guidance — a process this work does not own. Matei's own assessment is that the audio-transmission premise is superseded by this AI-dialogue-driven flow, and that his port/adapter architecture "fits well over the canonical model idea" — worth noting as independent architectural agreement with the CEIM/adapter approach here, not a competing design.
+
+| Matei already has | This backend (`app/backend`) | Verdict |
+|---|---|---|
+| JWT auth, register/login | Already exists independently, tested this session | Duplicate capability, not code — no merge needed |
+| Sessions persisted in PostgreSQL | Already exists independently (`incident_sessions`/`incident_events`), tested this session including the live ISU dashboard websocket | Duplicate capability, not code — no merge needed |
+| Docker Compose containerization | Not present here | Real gap — legitimate follow-up, not done this session |
+| 79 automated tests | None committed here (verification this session was scripted API calls, not a committed suite) | Real gap — legitimate follow-up, not done this session |
+| Real-time 112-call-audio → server premise | No microphone capture code anywhere in this app (verified; see conflict 5 below) | Correctly abandoned by both sides |
+
+The CEIM JSON schema is deliberately the portable part of this work — a plain data contract, not tied to FastAPI/Ollama/Postgres — so it can be adopted regardless of which backend the team eventually converges on.
 
 ## 3. Conflicts / divergences from the original direction
 

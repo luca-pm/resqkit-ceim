@@ -22,6 +22,7 @@
 // storage.ts is this platform's localStore, and WebSocket is a React Native
 // global — so the streaming logic below needs no changes at all.
 import { client, getAPIBaseURL } from './apiClient';
+import { CeimIncident } from './ceim';
 import { IncidentState, InstitutionalLogEntry } from './storage';
 
 type LogFn = (entry: Omit<InstitutionalLogEntry, 'id' | 'at'>) => void;
@@ -219,6 +220,63 @@ export async function logProcedureStep(
       data: { event_type: 'procedure_step', payload: { index: stepIndex, title: stepTitle } },
     });
     return { detail: `Logged step ${stepIndex + 1}: ${stepTitle} to backend session ${sessionId}`, result: true };
+  });
+}
+
+/** Records one answered AI-interview prompt, logged per-answer (not batched) so the ISU dashboard sees live progress. */
+export async function logInterviewAnswer(
+  incident: IncidentState,
+  realDataMode: boolean,
+  promptId: string,
+  promptText: string,
+  answerText: string,
+  log: LogFn,
+  onSession: SessionFn,
+): Promise<void> {
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
+  if (!sessionId) return;
+
+  if (!realDataMode) {
+    log({ action: 'interview.answer', mode: 'simulated', detail: `Simulated log of ${promptId}`, ok: true });
+    return;
+  }
+
+  await safely('interview.answer', 'real', log, async () => {
+    await client.apiCall.invoke({
+      url: `/api/v1/incident_sessions/${sessionId}/events`,
+      method: 'POST',
+      data: {
+        event_type: 'interview_answer',
+        payload: { prompt_id: promptId, prompt_text: promptText, answer_text: answerText },
+      },
+    });
+    return { detail: `Logged interview answer ${promptId} to backend session ${sessionId}`, result: true };
+  });
+}
+
+/** Records the generated CEIM report, once, after the interview's single extraction call resolves. */
+export async function logCeimGenerated(
+  incident: IncidentState,
+  realDataMode: boolean,
+  ceim: CeimIncident,
+  log: LogFn,
+  onSession: SessionFn,
+): Promise<void> {
+  const sessionId = await ensureSession(incident, realDataMode, log, onSession);
+  if (!sessionId) return;
+
+  if (!realDataMode) {
+    log({ action: 'ceim.generate', mode: 'simulated', detail: 'Simulated report generation — nothing sent', ok: true });
+    return;
+  }
+
+  await safely('ceim.generate', 'real', log, async () => {
+    await client.apiCall.invoke({
+      url: `/api/v1/incident_sessions/${sessionId}/events`,
+      method: 'POST',
+      data: { event_type: 'ceim_report_generated', payload: { ceim, degraded: ceim.degraded } },
+    });
+    return { detail: `Logged CEIM report to backend session ${sessionId}`, result: true };
   });
 }
 

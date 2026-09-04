@@ -15,6 +15,15 @@ PIDF-LO (location + provider info + a free-text comment folded from the
 session's own log) - real integration would need the full data-block
 catalog and a schema validated against whatever the receiving authority
 actually accepts.
+
+CEIM-aware (2026-09, per the mentor's canonical-model direction, see
+ResQKit_Canonical_Incident_Model.md): if the session's event log has a
+ceim_report_generated event, this is the NG112 "adapter" translating FROM
+that canonical model rather than from ad hoc fields - the mentor's own
+framing of "build the model once, add adapters on top." The request/
+response contract is unchanged; callers that never generate a CEIM (or
+sessions predating this feature) get byte-identical behavior via the
+existing log-scanning fallback.
 """
 
 import logging
@@ -120,6 +129,81 @@ class NgProtocolService:
                     parts.append(text)
         return " | ".join(parts) if parts else "No triage data captured yet."
 
+    @staticmethod
+    def _extract_latest_ceim(session) -> Optional[Dict[str, Any]]:
+        """Last ceim_report_generated event wins, mirroring _summarize_log's
+        own scan-the-log approach. The stored payload is arbitrary JSON (a
+        serialized CeimIncident), not a validated model, so every read below
+        must be defensive."""
+        for event in reversed(session.events):
+            if event.event_type == "ceim_report_generated" and event.payload:
+                ceim = event.payload.get("ceim")
+                if isinstance(ceim, dict):
+                    return ceim
+        return None
+
+    @staticmethod
+    def _ceim_fact_value(ceim: Optional[Dict[str, Any]], *path: str) -> Any:
+        """Walk a nested CEIM dict to one Fact's `value`, tolerating any
+        missing/malformed step rather than raising."""
+        node: Any = ceim
+        for key in path:
+            if not isinstance(node, dict):
+                return None
+            node = node.get(key)
+        if isinstance(node, dict):
+            return node.get("value")
+        return None
+
+    @classmethod
+    def _comment_from_ceim(cls, ceim: Dict[str, Any]) -> str:
+        """Deterministic, NO model call - folds scene_observations, hazard
+        descriptions and victim condition text into one string, each fact
+        suffixed with its confidence so a human reader can weigh it."""
+
+        def fact_str(fact: Any) -> Optional[str]:
+            if not isinstance(fact, dict):
+                return None
+            value = fact.get("value")
+            if not value:
+                return None
+            confidence = fact.get("confidence", "low")
+            return f"{value} [conf:{confidence}]"
+
+        parts: List[str] = []
+
+        victims = ceim.get("victims")
+        if isinstance(victims, list):
+            for victim in victims:
+                if not isinstance(victim, dict):
+                    continue
+                for field_name in ("condition_description", "injury_type", "trapped"):
+                    s = fact_str(victim.get(field_name))
+                    if s:
+                        parts.append(s)
+
+        hazards = ceim.get("hazards")
+        if isinstance(hazards, list):
+            for hazard in hazards:
+                if not isinstance(hazard, dict):
+                    continue
+                s = fact_str(hazard.get("description"))
+                if s:
+                    parts.append(f"hazard: {s}")
+
+        observations = ceim.get("scene_observations")
+        if isinstance(observations, list):
+            for obs in observations:
+                s = fact_str(obs)
+                if s:
+                    parts.append(s)
+
+        notes = fact_str(ceim.get("additional_notes"))
+        if notes:
+            parts.append(notes)
+
+        return " | ".join(parts) if parts else "CEIM report generated with no scene detail captured."
+
     async def build(
         self,
         session_id: str,
@@ -132,21 +216,39 @@ class NgProtocolService:
         if not session:
             raise NgProtocolError("not_found")
 
-        comment_text = comment_override or self._summarize_log(session)
+        ceim = self._extract_latest_ceim(session)
+
+        if comment_override:
+            comment_text = comment_override
+        elif ceim:
+            comment_text = self._comment_from_ceim(ceim)
+        else:
+            comment_text = self._summarize_log(session)
+
+        # Explicit args win; otherwise fall back to the CEIM's own location
+        # facts (device_sensor-sourced) if a report exists.
+        lat = latitude if latitude is not None else self._ceim_fact_value(ceim, "location", "latitude")
+        lon = longitude if longitude is not None else self._ceim_fact_value(ceim, "location", "longitude")
+        acc = accuracy_m if accuracy_m is not None else self._ceim_fact_value(ceim, "location", "accuracy_m")
+
+        note = (
+            "PROOF OF CONCEPT ONLY - not sent to any real emergency infrastructure. "
+            "Real NG112/PIDF-LO transmission requires an authorized channel via STS/ANCOM "
+            "(Phase 3 per project docs); this app's only real 112 channel today is the OS dialer."
+        )
+        if ceim:
+            note += " Comment content is adapted from the session's Canonical Emergency Incident Model."
 
         payload: Dict[str, Any] = {
             "incident_id": session_id,
-            "pidf_lo": _build_pidf_lo(latitude, longitude, accuracy_m),
+            "pidf_lo": _build_pidf_lo(lat, lon, acc),
             "additional_data": {
                 "provider_info": _build_provider_info("ResQKit", session_id),
                 "comment": _build_comment(comment_text),
             },
             "transmitted": False,
-            "note": (
-                "PROOF OF CONCEPT ONLY - not sent to any real emergency infrastructure. "
-                "Real NG112/PIDF-LO transmission requires an authorized channel via STS/ANCOM "
-                "(Phase 3 per project docs); this app's only real 112 channel today is the OS dialer."
-            ),
+            "ceim_driven": ceim is not None,
+            "note": note,
         }
 
         await self.sessions.append_event(

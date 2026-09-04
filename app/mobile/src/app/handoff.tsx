@@ -15,7 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { CheckCircle2, Copy, Radio, Share2, Sparkles, Volume2 } from 'lucide-react-native';
+import { CheckCircle2, Copy, FileText, Radio, Share2, Sparkles, Volume2 } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -311,6 +311,25 @@ export default function HandoffScreen() {
           )}
         </CardContent>
       </Card>
+
+      {incident.ceimReport && (
+        <Card className="border-dashed">
+          <CardContent className="gap-2">
+            <View className="flex-row items-center gap-1.5">
+              <FileText size={16} color={colors.primary} />
+              <Text className="font-semibold text-foreground">Scene report</Text>
+            </View>
+            <Text className="text-sm text-muted-foreground">
+              A detailed, shareable report built from your interview answers — location, victims,
+              hazards, observations, each tagged with where it came from.
+            </Text>
+            <Button size="sm" variant="secondary" onPress={() => router.push('/report')}>
+              <FileText size={16} color={colors.secondaryForeground} />
+              <Text className="text-xs font-medium text-secondary-foreground">View report</Text>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-dashed">
         <CardContent className="gap-2">

@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
 import { callEmergencyServices } from '@/components/AppShell';
+import InterviewStage from '@/components/InterviewStage';
 import KitScanner from '@/components/KitScanner';
 import ProcedureRunner from '@/components/ProcedureRunner';
 import { useIncident } from '@/contexts/IncidentContext';
@@ -58,7 +59,7 @@ import {
 import { CompletedStep } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
-type Stage = 'context' | 'call' | 'triage' | 'hazards' | 'kit' | 'guide';
+type Stage = 'context' | 'call' | 'triage' | 'interview' | 'hazards' | 'kit' | 'guide';
 
 const CONTEXT_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   car: Car,
@@ -639,11 +640,25 @@ export default function EmergencyScreen() {
           </CardContent>
         </Card>
 
-        <Button size="lg" disabled={!canContinue} onPress={() => setStage('hazards')}>
-          <Text className="text-base font-medium text-primary-foreground">Continue to hazards</Text>
+        <Button size="lg" disabled={!canContinue} onPress={() => setStage('interview')}>
+          <Text className="text-base font-medium text-primary-foreground">Continue</Text>
           <ChevronRight size={20} color={colors.primaryForeground} />
         </Button>
       </ScrollView>
+    );
+  }
+
+  /* ------------------------ Stage: interview ------------------------ */
+  if (stage === 'interview') {
+    return (
+      <InterviewStage
+        incident={incident}
+        settings={settings}
+        logInstitutional={logInstitutional}
+        onSession={onSession}
+        updateIncident={updateIncident}
+        onDone={() => setStage('hazards')}
+      />
     );
   }
 
@@ -831,6 +846,11 @@ export default function EmergencyScreen() {
         <Button variant="secondary" onPress={() => setStage('kit')}>
           Change my kit
         </Button>
+        {incident.ceimReport && (
+          <Button variant="secondary" onPress={() => router.push('/report')}>
+            View scene report
+          </Button>
+        )}
         <Button variant="secondary" onPress={() => router.push('/handoff')}>
           Rescuers are here — open handoff
         </Button>
