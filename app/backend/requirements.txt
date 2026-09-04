@@ -26,3 +26,7 @@ bcrypt>=4.1.0
 openai==2.16.0
 sse-starlette>=1.6.0
 PyMuPDF
+
+# edxl_sitrep module: real XSD validation of the CEIM->EDXL-SitRep adapter's
+# output against the OASIS schema. Pure Python, no C toolchain needed.
+xmlschema>=4.3.2

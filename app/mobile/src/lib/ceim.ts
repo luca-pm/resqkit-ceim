@@ -65,6 +65,7 @@ export interface CeimIncident {
   victim_count?: Fact<number> | null;
   victims: CeimVictim[];
   hazards: CeimHazard[];
+  kit_items: Fact<string>[];
   scene_observations: Fact<string>[];
   additional_notes?: Fact<string> | null;
   degraded: boolean;
@@ -87,6 +88,9 @@ export interface KnownFacts {
   injury: string | null;
   age_band: string | null;
   trapped: string | null;
+  /** Empty before the hazards/kit stages run — see the "Regenerate report" action on report.tsx. */
+  hazards: string[];
+  kit_items: string[];
 }
 
 export interface InterviewAnswerIn {
@@ -125,6 +129,11 @@ export function buildKnownFactsFromIncident(incident: IncidentState): KnownFacts
     injury: incident.injury || null,
     age_band: incident.ageBand || null,
     trapped: incident.trapped || null,
+    // Empty on the interview's first pass (that stage runs before these are
+    // captured); populated once the wizard reaches hazards/kit, so a later
+    // "Regenerate report" call picks them up automatically.
+    hazards: incident.hazards,
+    kit_items: incident.kitItems,
   };
 }
 

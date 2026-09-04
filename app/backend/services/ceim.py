@@ -38,7 +38,7 @@ from schemas.ceim import (
 )
 from schemas.aihub import ChatMessage
 from services.aihub import AIHubService
-from services.resqkit_ai import HAZARD_WHITELIST, NARRATIVE_MODEL, _extract_json_block
+from services.resqkit_ai import HAZARD_WHITELIST, KIT_ITEM_WHITELIST, NARRATIVE_MODEL, _extract_json_block
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,20 @@ class CeimService:
             trapped=button(known.trapped),
         )
 
+        hazards = [
+            CeimHazard(
+                code=Fact(value=code, source="button_selected", confidence="high"),
+                description=Fact(
+                    value=HAZARD_WHITELIST.get(code, code), source="button_selected", confidence="high"
+                ),
+            )
+            for code in known.hazards
+        ]
+        kit_items = [
+            Fact(value=KIT_ITEM_WHITELIST.get(code, code), source="button_selected", confidence="high")
+            for code in known.kit_items
+        ]
+
         return CeimIncident(
             generated_at=datetime.now(timezone.utc),
             content_pack_version=content_pack_version,
@@ -99,6 +113,8 @@ class CeimService:
             ),
             victim_count=button(known.victim_count),
             victims=[victim],
+            hazards=hazards,
+            kit_items=kit_items,
         )
 
     # ------------------------------------------------------------------ #

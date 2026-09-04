@@ -102,6 +102,9 @@ class CeimIncident(BaseModel):
     victim_count: Optional[Fact[int]] = None
     victims: List[CeimVictim] = Field(default_factory=list)
     hazards: List[CeimHazard] = Field(default_factory=list)
+    kit_items: List[Fact[str]] = Field(
+        default_factory=list, description="Equipment confirmed on scene, button_selected from the kit stage."
+    )
     scene_observations: List[Fact[str]] = Field(
         default_factory=list, description="Free-text narrative snippets, one per interview prompt."
     )
@@ -112,7 +115,14 @@ class CeimIncident(BaseModel):
 
 
 class KnownFacts(BaseModel):
-    """Already-captured, button/sensor-sourced incident fields (never AI-touched)."""
+    """
+    Already-captured, button/sensor-sourced incident fields (never AI-touched).
+
+    `hazards`/`kit_items` are optional because the interview stage runs
+    BEFORE the hazards/kit stages in the wizard - a first report generation
+    naturally has neither. A "Regenerate report" action, fired once those
+    stages are done, resends this same request with them populated.
+    """
 
     incident_type: Optional[str] = None
     called_112: Optional[str] = None
@@ -126,6 +136,8 @@ class KnownFacts(BaseModel):
     injury: Optional[str] = None
     age_band: Optional[str] = None
     trapped: Optional[str] = None
+    hazards: List[str] = Field(default_factory=list, description="Confirmed hazard whitelist codes.")
+    kit_items: List[str] = Field(default_factory=list, description="Confirmed kit item whitelist codes.")
 
 
 class InterviewAnswerIn(BaseModel):

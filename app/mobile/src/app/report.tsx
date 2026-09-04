@@ -19,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  FileText,
   MapPin,
+  RefreshCw,
   Radio,
   Share2,
   ShieldAlert,
@@ -33,7 +35,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/toast';
 import { useIncident } from '@/contexts/IncidentContext';
 import { client } from '@/lib/apiClient';
-import { CeimIncident, Fact } from '@/lib/ceim';
+import { CeimGenerateResponse, CeimIncident, Fact, buildKnownFactsFromIncident } from '@/lib/ceim';
+import { logCeimGenerated } from '@/lib/institutionalActions';
 import { useTokenColors } from '@/lib/tokenColors';
 
 const COPY_CORRECTION =
@@ -111,16 +114,59 @@ interface NgPreview {
   ceim_driven: boolean;
 }
 
+interface EdxlPreview {
+  edxl_sitrep: string;
+  note: string;
+  validation: { valid: boolean | null; checked_against: string; error: string | null };
+}
+
 export default function ReportScreen() {
   const router = useRouter();
-  const { incident } = useIncident();
+  const { incident, settings, logInstitutional, updateIncident } = useIncident();
   const colors = useTokenColors();
   const [showRaw, setShowRaw] = useState(false);
   const [ngPreview, setNgPreview] = useState<NgPreview | null>(null);
   const [ngLoading, setNgLoading] = useState(false);
   const [ngError, setNgError] = useState('');
+  const [edxlPreview, setEdxlPreview] = useState<EdxlPreview | null>(null);
+  const [edxlLoading, setEdxlLoading] = useState(false);
+  const [edxlError, setEdxlError] = useState('');
+  const [regenerating, setRegenerating] = useState(false);
 
   const ceim = incident?.ceimReport ?? null;
+  const onSession = (id: string, code: string | null) =>
+    updateIncident({ backendSessionId: id, sessionCode: code });
+
+  const regenerate = async () => {
+    if (!incident) return;
+    setRegenerating(true);
+    try {
+      const res = await client.apiCall.invoke<CeimGenerateResponse>({
+        url: '/api/v1/resqkit/ceim/generate',
+        method: 'POST',
+        data: {
+          known_facts: buildKnownFactsFromIncident(incident),
+          interview_answers: incident.interviewAnswers.map((a) => ({
+            prompt_id: a.promptId,
+            prompt_text: a.promptText,
+            answer_text: a.answerText,
+          })),
+          content_pack_version: incident.contentPackVersion,
+        },
+      });
+      updateIncident({
+        ceimReport: res.data.ceim,
+        ceimGeneratedAt: new Date().toISOString(),
+        ceimDegraded: res.data.degraded,
+      });
+      void logCeimGenerated(incident, settings.realDataMode, res.data.ceim, logInstitutional, onSession);
+      toast.success('Report regenerated with your hazards and kit.');
+    } catch {
+      toast.error('Could not regenerate the report. The previous version is unchanged.');
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const share = async () => {
     if (!ceim) return;
@@ -160,6 +206,28 @@ export default function ReportScreen() {
       setNgError('Could not build the NG112 preview.');
     } finally {
       setNgLoading(false);
+    }
+  };
+
+  const previewEdxlSitRep = async () => {
+    const sessionId = incident?.backendSessionId;
+    if (!sessionId || sessionId.startsWith('sim-')) {
+      setEdxlError('Turn on Local backend mode in Settings to preview the EDXL-SitRep payload.');
+      return;
+    }
+    setEdxlLoading(true);
+    setEdxlError('');
+    try {
+      const res = await client.apiCall.invoke<EdxlPreview>({
+        url: `/api/v1/incident_sessions/${sessionId}/edxl_sitrep/build`,
+        method: 'POST',
+        data: {},
+      });
+      setEdxlPreview(res.data);
+    } catch {
+      setEdxlError('Could not build the EDXL-SitRep preview.');
+    } finally {
+      setEdxlLoading(false);
     }
   };
 
@@ -256,6 +324,22 @@ export default function ReportScreen() {
         </Card>
       )}
 
+      {ceim.kit_items.length > 0 && (
+        <Card>
+          <CardHeader className="flex-row items-center gap-2 pb-2">
+            <Backpack size={16} color={colors.primary} />
+            <CardTitle className="text-base">Kit on scene</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-row flex-wrap gap-1.5">
+            {ceim.kit_items.map((item, i) => (
+              <Badge key={i} variant="secondary">
+                {item.value}
+              </Badge>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {ceim.scene_observations.length > 0 && (
         <Card>
           <CardHeader className="flex-row items-center gap-2 pb-2">
@@ -279,6 +363,16 @@ export default function ReportScreen() {
         <Button variant="secondary" onPress={copyRawJson}>
           <Copy size={16} color={colors.secondaryForeground} />
           <Text className="text-sm font-medium text-secondary-foreground">Copy raw CEIM JSON</Text>
+        </Button>
+        <Button variant="outline" onPress={regenerate} disabled={regenerating}>
+          {regenerating ? (
+            <ActivityIndicator size="small" color={colors.foreground} />
+          ) : (
+            <RefreshCw size={16} color={colors.foreground} />
+          )}
+          <Text className="text-sm font-medium text-foreground">
+            Regenerate with current hazards &amp; kit
+          </Text>
         </Button>
       </View>
 
@@ -326,6 +420,46 @@ export default function ReportScreen() {
                 <Text className="font-mono text-xs text-foreground">{ngPreview.pidf_lo}</Text>
               )}
               <Text className="text-xs text-muted-foreground">{ngPreview.note}</Text>
+            </View>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed">
+        <CardContent className="gap-2">
+          <View className="flex-row items-center gap-1.5">
+            <FileText size={16} color={colors.primary} />
+            <Text className="font-semibold text-foreground">EDXL-SitRep payload preview</Text>
+          </View>
+          <Text className="text-sm text-muted-foreground">
+            Adapts this report into an OASIS EDXL-SitRep field-observation XML report. Proof-of-concept
+            only — never transmitted anywhere.
+          </Text>
+          <Button size="sm" variant="secondary" disabled={edxlLoading} onPress={previewEdxlSitRep}>
+            {edxlLoading ? (
+              <ActivityIndicator size="small" color={colors.secondaryForeground} />
+            ) : (
+              <Archive size={16} color={colors.secondaryForeground} />
+            )}
+            <Text className="text-xs font-medium text-secondary-foreground">Build preview</Text>
+          </Button>
+          {edxlError !== '' && <Text className="text-xs text-destructive">{edxlError}</Text>}
+          {edxlPreview && (
+            <View className="gap-2 rounded-md border border-border bg-background p-3">
+              <Badge variant={edxlPreview.validation.valid ? 'secondary' : 'emergency'}>
+                {edxlPreview.validation.valid === true
+                  ? 'Schema-valid'
+                  : edxlPreview.validation.valid === false
+                    ? 'Schema-invalid'
+                    : 'Not validated'}
+              </Badge>
+              <Text className="font-mono text-xs text-foreground" numberOfLines={12}>
+                {edxlPreview.edxl_sitrep}
+              </Text>
+              {edxlPreview.validation.error && (
+                <Text className="text-xs text-destructive">{edxlPreview.validation.error}</Text>
+              )}
+              <Text className="text-xs text-muted-foreground">{edxlPreview.note}</Text>
             </View>
           )}
         </CardContent>
