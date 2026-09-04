@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/__pycache__/
+logs/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
