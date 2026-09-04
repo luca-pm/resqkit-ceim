@@ -442,8 +442,12 @@ const Emergency: React.FC = () => {
                 className="mt-3 w-full"
                 size="lg"
                 onClick={() => {
+                  // Straight to guidance, matching the banner's own promise to
+                  // skip the rest of the questions. Every kit-gated CPR step
+                  // already has a withoutItem fallback, so nothing depends on
+                  // having visited the kit screen. Mirrors app/mobile's fix.
                   updateIncident({ procedureId: 'cpr_aed' });
-                  setStage('kit');
+                  setStage('guide');
                 }}
               >
                 Start CPR guidance
