@@ -1,6 +1,6 @@
 # ResQKit — Canonical Emergency Incident Model (CEIM)
 
-**Status:** Implemented (interview → CEIM → NG112 adapter). EDXL-SitRep adapter and STS format are explicitly deferred — see §6 and §7.
+**Status:** Implemented — interview → CEIM → NG112 adapter → EDXL-SitRep adapter, all verified against the real running backend and, for EDXL-SitRep, the real published OASIS schema. Only the STS format stays explicitly deferred — see §7.
 **Date:** 2026-09-04
 **Purpose:** Answers the mentor's 2026-09-02 direction in writing: the app's AI populates one internal model instead of generating a protocol-specific format directly, and protocol adapters translate FROM that model on demand. This document is also the artifact meant to satisfy the mentor's "have an AI research and explain EDXL-SitRep/NG112 to the team" instruction, and the hand-off Mircea and Matei can review to check for overlap with their own work (see `ResQKit_Progress_Update.md` for the explicit overlap table).
 
@@ -123,19 +123,35 @@ The response gains one additive field, `ceim_driven: bool`, so a caller can tell
 
 ---
 
-## 6. CEIM → EDXL-SitRep mapping (not yet implemented — week 2)
+## 6. CEIM → EDXL-SitRep mapping (implemented)
 
-No code exists for this yet. Planned shape, for when it's built:
+**The mentor's link 404s.** `.../schemas/EDXLSitRep.xsd` doesn't exist; the real published file is `EDXLSitRep-v1.0.xsd`, found by walking the version index the mentor also linked. Worth knowing if anyone else tries the original URL.
 
-| CEIM field | Planned EDXL-SitRep target |
+`app/backend/services/edxl_sitrep.py` builds a `sitRep` document (root type `SitRepType`) whose `report` element uses the abstract `IReport` type via `xsi:type`, concretely **`FieldObservationType`** — the field-observation report type flagged in §2, and the best structural fit for a bystander's free-text scene description:
+
+| CEIM field | EDXL-SitRep target |
 |---|---|
-| `incident_type`, `generated_at` | Report header / incident identification fields. |
-| `location.*` | A SitRep location reference (SitRep can carry EDXL-DE-style location, or a simpler area description — exact element to be confirmed against the XSD when this is built). |
-| `victims[]`, `hazards[]` | One or more situation-report segments, each carrying the relevant CEIM facts as structured content plus narrative. |
-| `scene_observations[]`, `additional_notes` | Free-text narrative fields within the relevant segment. |
-| `degraded` | Not represented in EDXL-SitRep itself — would need to be an internal-only flag, not part of the transmitted report, since a receiving institution has no use for "our AI couldn't summarize this." |
+| session id | `messageID`, `incidentID` |
+| `location.latitude`/`longitude` | `observationLocation` → `ct:EDXLGeoLocation` → `gml:point` (GML 3.2, EDXL's "Simple Features Profile") |
+| `location.description` (no GPS fix) | `observationLocation` → `ct:EDXLGeoPoliticalLocation` → `geoCode` — a generic value-list pair, chosen over a full xAL postal address since CEIM has no structured address data. `observationLocation` is mandatory with no "unknown" option, so even a fully degraded report gets a placeholder value rather than invalid/missing content. |
+| overall confidence across all facts actually included | `reportConfidence` (`HighlyConfident`/`SomewhatConfident`/`Unsure`/`NoConfidence`) — the *lowest* confidence among included facts is used, since SitRep confidence is per-report, not per-fact like CEIM, and understating certainty is the safe direction to round. |
+| `hazards[]` presence | `severity` (`Severe` if any hazard is present, else `Moderate`) |
+| `victims[].condition_description`/`injury_type`/`trapped`, `hazards[].description`, `scene_observations[]`, `additional_notes` | Folded into `observationText`, the report's free-text narrative |
+| `hazards[].code` (fire/electrical/fuel_spill/gas) | `immediateNeedsCategory` = `FireAndHazardousMaterials`, else `EmergencyMedicalServices` |
+| `kit_items[]` | **Not mapped.** No SitRep field fits on-scene bystander equipment; shown in the app's own report view only. |
+| `degraded` | Not represented — a receiving institution has no use for "our AI couldn't summarize this," matching the original plan. |
 
-**Why this is deferred rather than rushed:** unlike NG112, there is no existing XML plumbing to extend — this needs new code end-to-end, plus real validation against the XSD the mentor linked (needs `lxml` or `xmlschema`, neither currently a dependency — flag for approval before adding). The mentor's own message frames both protocols as "first targets" for the team's *research* direction; the one-week deadline was specifically about the interview → report → guidance flow being visible in the app, not about both adapters being live.
+`preparedBy`/`authorizedBy` are mandatory on `SitRepType` and require a `ct:PersonTimePairType` → CIQ `xpil:PersonDetailsType` → at least one `xnl:personName`. CEIM has no reporter-name concept, so both identify "ResQKit bystander app" rather than a real person — the minimal valid `personName` is empty content, so this is honest, schema-correct filler, not a fabricated identity.
+
+**Real validation, not a guess.** `services/edxl_sitrep.py`'s `validate_edxl_sitrep()` runs the built XML through the `xmlschema` package pointed at the real OASIS URL, which resolves the *entire* transitive schema tree over HTTPS at validation time (this schema → CT → GSF → GML 3.2 from opengis.net → CIQ/xPIL/xNL for the person types) — nothing is guessed or hand-waved. Getting there found three real bugs, each only catchable by validating against the actual schema rather than reasoning from XML conventions:
+
+1. `EDXLGeoLocation` must carry the **`ct:`** namespace prefix (the schema file that *declares* the element), not the `edxl-gsf:` namespace of its own *content type* — an easy, non-obvious mix-up.
+2. The location choice element is **`gml:point`**, lowercase — not GML 3.2's own conventionally-capitalized `gml:Point`. This EDXL "GML Simple Features Profile" genuinely uses the lowercase form.
+3. That same element requires a `gml:Id` identity attribute and an unprefixed, capitalized **`SrsName`** — not vanilla GML's `srsName`.
+
+A fourth, more consequential bug surfaced only when this module ran *inside the actual FastAPI app* rather than standalone: `ng_protocol.py` and `edxl_sitrep.py` both called `ET.register_namespace("", ...)` for **different** namespace URIs. `register_namespace` writes to a process-global registry, so whichever module's import ran last silently won the default-namespace slot, and the other module's elements lost their default-namespace declaration on serialization — breaking `xsi:type="FieldObservationType"` resolution (an unprefixed value resolves against whatever default namespace is in scope) with `"global component 'FieldObservationType' not found"`. Fixed by giving EDXL-SitRep's root an explicit `sitrep:` prefix instead of `""`, and writing `xsi:type` fully qualified (`sitrep:FieldObservationType`) rather than relying on ambient default-namespace resolution. Confirmed this was the actual cause (not environment/threading, both tried and ruled out first) by reproducing it in isolation: importing both modules together broke it every time; either alone never did.
+
+**Result:** three sample documents — with a GPS fix, with neither GPS nor a location note, and a fully empty/degraded CEIM — all validate as schema-valid against the live OASIS schema, verified through the actual running endpoint end to end, not just in a standalone script.
 
 ---
 
@@ -147,7 +163,7 @@ Per the mentor's own instruction: *"nu încercăm acum să 'ghicim' exact format
 
 ## 8. Non-transmission and legal posture (recap, unchanged)
 
-No PSAP/112 real data channel exists in this app today — this remains an open, tracked item (`ResQKit_Progress_Update.md`, conflict 4 and the legal-team questions section). CEIM generation, the NG112 adapter, and the (future) EDXL-SitRep adapter are all **non-transmitting**: they build a payload shape and stop there. The app's only real 112 channel is, and remains, the OS dialer (`tel:112`).
+No PSAP/112 real data channel exists in this app today — this remains an open, tracked item (`ResQKit_Progress_Update.md`, conflict 4 and the legal-team questions section). CEIM generation, the NG112 adapter, and the EDXL-SitRep adapter are all **non-transmitting**: they build a payload shape and stop there. The app's only real 112 channel is, and remains, the OS dialer (`tel:112`).
 
 The mentor's phrase *"trimitem acel raport la orice instituție"* (we send that report to any institution) is deliberately **not** implemented as literal autonomous transmission. Nothing in this app sends data anywhere today, and building that would be a false claim carrying real legal weight on an already-open question — see the recording/transmission questions already raised with the legal team, and GDPR Article 9 (special-category data) as discussed in `eu_regulations_emergency_response_data_handling_report.md` §1.1. The honest, implemented behavior: the report is built in a **universal, exportable format** that the user explicitly **shares** (reusing the same OS share-sheet action already used for the deterministic brief in `handoff.tsx`) with whichever institution or person they choose. This exact framing is the copy shown on the report screen itself (`app/mobile/src/app/report.tsx`), in English and Romanian.
 
@@ -157,6 +173,8 @@ The mentor's phrase *"trimitem acel raport la orice instituție"* (we send that 
 
 - **CEIM extraction**, scripted against the running backend: a normal request (known facts + interview answers) and an **adversarial** request where the free text explicitly contradicted `responsive: "no"`/`breathing: "no"` — the response's `victims[0].responsive`/`breathing` stayed `value: "no"`, `source: "button_selected"` in both runs, at two different phrasings/latencies (33.1s and 15.6s). This is the concrete, repeatable proof of the safety rule in §1, not just a design intent.
 - **Degrade path**: pointed the model endpoint at an unreachable host — still HTTP 200, `degraded: true`, raw interview answers folded in as low-confidence observations rather than a dead end.
-- **NG112 adapter**: regression-checked (no-CEIM session behaves byte-identically to before the refactor) and new-behavior-checked (synthetic CEIM event produces `ceim_driven: true`, CEIM content reflected in the comment, returned XML fragments parse cleanly with `ElementTree.fromstring()`, confirming bystander free text doesn't break XML escaping).
+- **NG112 adapter**: regression-checked (no-CEIM session behaves byte-identically to before the refactor) and new-behavior-checked (synthetic CEIM event produces `ceim_driven: true`, CEIM content reflected in the comment, returned XML fragments parse cleanly with `ElementTree.fromstring()`, confirming bystander free text doesn't break XML escaping) — re-checked again after the EDXL-SitRep module was added to the same process, since that's exactly where the namespace collision bug (§6) surfaced.
+- **EDXL-SitRep adapter**: real schema validation via `xmlschema` against the live OASIS URL, resolving the full transitive schema tree, across three cases (GPS fix present; no GPS fix but a location note; fully empty/degraded CEIM) — all schema-valid. Verified through the actual running `POST /{session_id}/edxl_sitrep/build` endpoint end to end (session → CEIM with hazards/kit → event logged → payload built and validated), not just a standalone script, which is precisely what caught the namespace collision bug that a standalone script could not have found.
+- **Regenerate report**: `known_facts` extended with `hazards`/`kit_items`, populated as `button_selected`/high-confidence facts in the skeleton before any AI merge — verified via the same live endpoint with both fields populated, producing a CEIM whose `hazards`/`kit_items` arrays were non-empty.
 - **Mobile**: `tsc --noEmit` and `expo lint` clean; the Metro dev server bundle was fetched and grepped to confirm the new interview/report screens are actually served, not just present in source.
 - **Honest limits, not hidden**: the on-device *feel* of a 15–60 second final "generating report" wait, and whether the 5 fixed prompts actually elicit useful text from a real, stressed bystander rather than one-word non-answers, cannot be verified from this dev sandbox. Recommend the team dry-run the interview themselves before the mentor demo.

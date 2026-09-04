@@ -62,8 +62,9 @@ Built in response to the mentor's 2026-09-02 direction (see `ResQKit_Canonical_I
 
 - **The AI interview flow is live**: after confirming a 112 call, a bystander answers up to 5 fixed, optional, open-ended prompts (skippable at any point), then one call structures everything into a versioned, provenance-tracked internal model (`CeimIncident` — every fact carries where it came from and how confident the app is). This is additive to the existing fixed-button triage, not a replacement — the two life-critical CPR-routing fields (`responsive`/`breathing`) are never AI-sourced, enforced in code and covered by an adversarial test (contradictory free text could not change them in either of two test runs).
 - **The existing NG112/PIDF-LO payload builder now adapts from CEIM** when a report exists, with zero breaking change to its existing request/response contract — verified by a before/after regression check.
-- **EDXL-SitRep adapter and a Romania/STS-specific format are explicitly not built** — see the doc's §6–7 for why, matching the mentor's own "don't guess STS's format" instruction.
+- **EDXL-SitRep adapter is now also built** (`services/edxl_sitrep.py`), validated for real against the live OASIS XSD tree, not just structurally guessed — see the doc's §6 for the field mapping and the namespace-collision bug found and fixed along the way. A Romania/STS-specific format is still explicitly not built — see §7 for why, matching the mentor's own "don't guess STS's format" instruction.
 - **The "we send this report to any institution" framing was deliberately not implemented as literal transmission.** Nothing in this app sends data anywhere today (see conflict 4/5 below, unchanged by this work). The report is built in a shareable, universal format the user explicitly shares via the OS share sheet — the exact same non-transmission posture as the pre-existing NG protocol prototype.
+- **"Regenerate report" after hazards/kit are confirmed** is also live — a second, user-initiated call to the same one-call extraction pattern (not a hidden latency tax), so the CEIM report can reflect facts confirmed after the initial interview.
 
 ### Overlap with Matei's backend (`github.com/RosogaMatei/resqkit`)
 
@@ -73,8 +74,8 @@ Relayed by the team: Matei's backend was built on a different premise (streaming
 |---|---|---|
 | JWT auth, register/login | Already exists independently, tested this session | Duplicate capability, not code — no merge needed |
 | Sessions persisted in PostgreSQL | Already exists independently (`incident_sessions`/`incident_events`), tested this session including the live ISU dashboard websocket | Duplicate capability, not code — no merge needed |
-| Docker Compose containerization | Not present here | Real gap — legitimate follow-up, not done this session |
-| 79 automated tests | None committed here (verification this session was scripted API calls, not a committed suite) | Real gap — legitimate follow-up, not done this session |
+| Docker Compose containerization | Now present (`docker-compose.yml` at repo root: `db` + `backend` services, healthcheck-gated startup, host-run Ollama reached via `host.docker.internal`) | Gap closed this session |
+| 79 automated tests | Now has a committed, targeted suite (`app/backend/tests/`, ~26 tests: CEIM extraction/safety, NG112 CEIM-awareness, EDXL-SitRep build + real-schema validation) — smaller and CEIM-focused by design, not a 1:1 match to Matei's count | Gap substantially closed this session (scope: CEIM/NG112/EDXL-SitRep, not the whole backend) |
 | Real-time 112-call-audio → server premise | No microphone capture code anywhere in this app (verified; see conflict 5 below) | Correctly abandoned by both sides |
 
 The CEIM JSON schema is deliberately the portable part of this work — a plain data contract, not tied to FastAPI/Ollama/Postgres — so it can be adopted regardless of which backend the team eventually converges on.
