@@ -102,24 +102,71 @@ CHAT_MAX_HISTORY_TURNS = 8
 # general question. Deliberately conservative (biased toward false positives
 # — an unnecessary "call 112" reminder costs nothing; a missed one could
 # cost a lot). Checked against the latest user message only.
-_ACTIVE_EMERGENCY_PATTERNS = [
-    r"\bnot breathing\b", r"\bstopped breathing\b", r"\bcan'?t breathe\b",
+#
+# Both languages the app ships are covered. An English-only guard was a real
+# hole rather than a nicety: the product targets Romania, so "nu respiră" is
+# the single most likely way a live emergency is typed, and it previously
+# sailed past the guard straight to the model.
+#
+# Romanian entries accept unaccented spellings ("sangereaza", "inconstient")
+# because a phone keyboard under stress rarely produces diacritics, and a
+# guard that only fires for correctly-accented text is not a guard.
+_ACTIVE_EMERGENCY_PATTERNS_EN = [
+    # Negated/absent breathing, including contractions — "isn't breathing"
+    # previously defeated a bare "not breathing".
+    r"\b(not|isn'?t|aren'?t|ain'?t|stopped|barely)\s+breath",
+    r"\bcan'?t breathe\b", r"\bnot breathing\b", r"\bstopped breathing\b",
     r"\bno pulse\b", r"\bunconscious\b", r"\bunresponsive\b", r"\bcollapsed\b",
-    r"\bpassed out\b", r"\bnot waking up\b", r"\bwon'?t wake up\b",
+    r"\bpassed out\b", r"\b(not|isn'?t|won'?t)\s+wak(ing|e)\s+up\b",
     r"\bbleeding (a lot|heavily|badly|won'?t stop)\b", r"\bsevere bleeding\b",
     r"\bchoking\b(?! on the word)", r"\bheart attack\b", r"\bstroke\b",
-    r"\bseizure\b", r"\bconvulsing\b", r"\banaphylax", r"\ballergic reaction\b.*\b(now|right now|happening)\b",
-    r"\bright now\b.*\b(help|dying|bleeding|breathing)\b", r"\bhe'?s dying\b", r"\bshe'?s dying\b",
-    r"\bthey'?re dying\b", r"\bcall (an )?ambulance\b", r"\bin (a car|water|the water) and\b",
-    r"\bhelp me now\b", r"\bwhat do i do (right )?now\b.*\b(bleeding|breathing|unconscious)\b",
+    r"\bseizure\b", r"\bconvulsing\b", r"\banaphylax",
+    r"\ballergic reaction\b.*\b(now|right now|happening)\b",
+    r"\bright now\b.*\b(help|dying|bleeding|breathing)\b",
+    r"\b(he|she|they)'?(s|re)? dying\b",
+    r"\bcall (an )?ambulance\b", r"\bin (a car|water|the water) and\b",
+    r"\bhelp me now\b",
+    r"\bwhat do i do (right )?now\b.*\b(bleeding|breathing|unconscious)\b",
 ]
-_ACTIVE_EMERGENCY_RE = re.compile("|".join(_ACTIVE_EMERGENCY_PATTERNS), re.IGNORECASE)
 
+_ACTIVE_EMERGENCY_PATTERNS_RO = [
+    # nu respiră / nu mai respira / a încetat să respire
+    r"\bnu\s+(mai\s+)?respir",
+    r"\b(nu|greu)\s+(mai\s+)?poate\s+(s[ăa]\s+)?respir",
+    r"\bnu\s+(mai\s+)?are\s+puls\b", r"\bf[ăa]r[ăa]\s+puls\b",
+    r"\bincon[șs]tient", r"\ble[șs]inat", r"\ba\s+le[șs]inat\b",
+    r"\b[șs]i-?a\s+pierdut\s+cuno[șs]tin[țt]",
+    r"\bnu\s+(mai\s+)?r[ăa]spunde\b", r"\bnu\s+reac[țt]ioneaz[ăa]\b",
+    r"\bnu\s+se\s+treze[șs]te\b",
+    r"\bs-?a\s+pr[ăa]bu[șs]it\b",
+    r"\bs[âa]ngereaz[ăa]\b.*\b(tare|puternic|abundent|mult|foarte)\b",
+    r"\bs[âa]ngerare\s+(masiv|abundent|puternic)", r"\bhemoragie\b",
+    r"\bse\s+[îi]neac[ăa]\b", r"\bsufoc(are|[ăa])\b", r"\bse\s+sufoc[ăa]\b",
+    r"\binfarct\b", r"\batac\s+de\s+cord\b",
+    r"\bavc\b", r"\baccident\s+vascular\b",
+    r"\bconvulsii\b", r"\bcriz[ăa]\s+de\s+epilepsie\b",
+    r"\banafila",
+    r"\b(moare|e\s+pe\s+moarte)\b",
+    r"\bsun[ăa]?\s+(la\s+)?112\b", r"\bchem(a[țt]i|[ăa]m|i)?\s+(o\s+)?ambulan[țt]",
+    r"\bajutor\s+acum\b", r"\bce\s+fac\s+acum\b",
+]
+
+_ACTIVE_EMERGENCY_PATTERNS = _ACTIVE_EMERGENCY_PATTERNS_EN + _ACTIVE_EMERGENCY_PATTERNS_RO
+_ACTIVE_EMERGENCY_RE = re.compile("|".join(_ACTIVE_EMERGENCY_PATTERNS), re.IGNORECASE | re.UNICODE)
+
+# Bilingual on purpose: the endpoint does not receive the caller's UI
+# language, and a user who triggered this guard by typing Romanian must not
+# be handed an English-only instruction at the worst possible moment.
 CHAT_EMERGENCY_SHORT_CIRCUIT_REPLY = (
-    "This sounds like it might be happening right now. Call 112 immediately — "
-    "this chat is for general first-aid questions, not for live emergencies. "
-    "If you've already called, follow the operator's instructions; the "
-    "guided steps in this app can help while you wait."
+    "Call 112 now. / Sună la 112 acum.\n\n"
+    "This sounds like it might be happening right now. This chat is for "
+    "general first-aid questions, not for live emergencies. If you have "
+    "already called, follow the operator's instructions; the guided steps in "
+    "this app can help while you wait.\n\n"
+    "Pare că se întâmplă chiar acum. Acest chat este pentru întrebări "
+    "generale de prim ajutor, nu pentru urgențe în desfășurare. Dacă ai sunat "
+    "deja, urmează indicațiile operatorului; pașii ghidați din aplicație te "
+    "pot ajuta până sosesc echipajele."
 )
 
 CHAT_DEGRADED_REPLY = (
