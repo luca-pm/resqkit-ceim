@@ -68,10 +68,13 @@ const CONTEXT_ICONS: Record<string, React.ComponentType<{ size?: number; color?:
   help: HelpCircle,
 };
 
-const AGE_BANDS = ['', 'Infant (under 1)', 'Child', 'Adult', 'Elderly'];
-const AGE_LABELS: Record<string, string> = { '': 'Not sure' };
+// Exported so incident-detail.tsx can render these same labels for a past
+// incident's stored values, instead of re-deriving a second copy that could
+// drift from what the wizard actually offers.
+export const AGE_BANDS = ['', 'Infant (under 1)', 'Child', 'Adult', 'Elderly'];
+export const AGE_LABELS: Record<string, string> = { '': 'Not sure' };
 
-const TRAPPED_OPTIONS = [
+export const TRAPPED_OPTIONS = [
   { value: '', label: 'Not recorded' },
   { value: 'Accessible', label: 'Yes, I can reach them' },
   { value: 'Trapped in vehicle', label: 'Trapped in a vehicle' },
@@ -80,7 +83,7 @@ const TRAPPED_OPTIONS = [
   { value: 'Unreachable — hazard in the way', label: 'Unreachable, hazard in the way' },
 ];
 
-const POWERTRAIN_OPTIONS = [
+export const POWERTRAIN_OPTIONS = [
   { value: '', label: 'Not sure' },
   { value: 'Petrol or diesel', label: 'Petrol or diesel' },
   { value: 'Electric (high-voltage battery)', label: 'Electric (high-voltage battery)' },
@@ -551,8 +554,14 @@ export default function EmergencyScreen() {
                 className="mt-3"
                 size="lg"
                 onPress={() => {
+                  // Straight to guidance, matching the banner's own promise to
+                  // skip the rest of the questions. Every kit-gated CPR step
+                  // already has a withoutItem fallback (compression-only CPR,
+                  // "keep compressing" without an AED), so nothing here
+                  // depends on having visited the kit screen — time to first
+                  // compression outranks completeness of data capture.
                   updateIncident({ procedureId: 'cpr_aed' });
-                  setStage('kit');
+                  setStage('guide');
                 }}
               >
                 Start CPR guidance

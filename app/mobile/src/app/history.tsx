@@ -13,12 +13,12 @@
  * retention became real: local retained incidents belong to the user whether
  * or not they ever create an account.
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Archive, Clock, Trash2 } from 'lucide-react-native';
+import { Archive, ChevronRight, Clock, Trash2 } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,12 +70,14 @@ export default function HistoryScreen() {
     }
   }, [user, t]);
 
-  useEffect(() => {
-    // See the identical justified suppression in contexts/AuthContext.tsx —
-    // standard fetch-on-mount, not the pattern this rule targets.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
+  // Refetch on focus, not just on mount: returning here after archiving an
+  // incident from Review, or after deleting one from the detail screen,
+  // must show the change without needing an app restart.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const confirmDelete = (id: string) => {
     Alert.alert('Delete this incident?', 'It will be removed from this device immediately.', [
@@ -128,28 +130,41 @@ export default function HistoryScreen() {
               const ctx = CONTEXTS.find((c) => c.id === entry.incident.context)?.label;
               return (
                 <Card key={entry.id}>
-                  <CardContent className="gap-2">
-                    <View className="flex-row items-start justify-between gap-3">
-                      <View className="flex-1">
-                        <Text className="font-semibold text-foreground">
-                          {new Date(entry.incident.startedAt).toLocaleString()}
-                          {ctx ? ` — ${ctx}` : ''}
-                        </Text>
-                        <Text className="mt-0.5 text-sm text-muted-foreground">
-                          {t('victims', { count: entry.incident.victimCount })}
-                          {entry.incident.hazards.length > 0
-                            ? ` · ${t('hazards', { count: entry.incident.hazards.length })}`
-                            : ''}
-                          {` · ${entry.incident.completedSteps.length} step(s) done`}
-                        </Text>
+                  <Pressable
+                    onPress={() =>
+                      router.push({ pathname: '/incident-detail', params: { source: 'local', id: entry.id } })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="View incident details"
+                  >
+                    <CardContent className="gap-2 pb-2">
+                      <View className="flex-row items-start justify-between gap-3">
+                        <View className="flex-1">
+                          <Text className="font-semibold text-foreground">
+                            {new Date(entry.incident.startedAt).toLocaleString()}
+                            {ctx ? ` — ${ctx}` : ''}
+                          </Text>
+                          <Text className="mt-0.5 text-sm text-muted-foreground">
+                            {t('victims', { count: entry.incident.victimCount })}
+                            {entry.incident.hazards.length > 0
+                              ? ` · ${t('hazards', { count: entry.incident.hazards.length })}`
+                              : ''}
+                            {` · ${entry.incident.completedSteps.length} step(s) done`}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-1.5">
+                          <Badge variant="secondary">{timeLeft(entry.expiresAt)}</Badge>
+                          <ChevronRight size={16} color={colors.mutedForeground} />
+                        </View>
                       </View>
-                      <Badge variant="secondary">{timeLeft(entry.expiresAt)}</Badge>
-                    </View>
+                    </CardContent>
+                  </Pressable>
+                  <View className="px-4 pb-4">
                     <Button size="sm" variant="outline" onPress={() => confirmDelete(entry.id)}>
                       <Trash2 size={14} color={colors.foreground} />
                       <Text className="text-xs font-medium text-foreground">Delete now</Text>
                     </Button>
-                  </CardContent>
+                  </View>
                 </Card>
               );
             })
@@ -193,17 +208,31 @@ export default function HistoryScreen() {
           ) : (
             records.map((item) => (
               <Card key={item.id}>
-                <CardContent className="gap-1">
-                  <Text className="font-semibold text-foreground">
-                    {new Date(item.occurred_at).toLocaleDateString()} — {item.context_type}
-                  </Text>
-                  <Text className="text-sm text-muted-foreground">
-                    {t('victims', { count: item.victim_count })}
-                    {item.hazards
-                      ? ` · ${t('hazards', { count: item.hazards.split(',').filter(Boolean).length })}`
-                      : ''}
-                  </Text>
-                </CardContent>
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: '/incident-detail',
+                      params: { source: 'server', id: String(item.id) },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="View incident details"
+                >
+                  <CardContent className="flex-row items-center justify-between gap-3">
+                    <View className="flex-1 gap-1">
+                      <Text className="font-semibold text-foreground">
+                        {new Date(item.occurred_at).toLocaleDateString()} — {item.context_type}
+                      </Text>
+                      <Text className="text-sm text-muted-foreground">
+                        {t('victims', { count: item.victim_count })}
+                        {item.hazards
+                          ? ` · ${t('hazards', { count: item.hazards.split(',').filter(Boolean).length })}`
+                          : ''}
+                      </Text>
+                    </View>
+                    <ChevronRight size={16} color={colors.mutedForeground} />
+                  </CardContent>
+                </Pressable>
               </Card>
             ))
           )}
