@@ -7,13 +7,14 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'emergency' | 'outline';
+export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'emergency' | 'warning' | 'outline';
 
 const CONTAINER: Record<BadgeVariant, string> = {
   default: 'bg-primary border-transparent',
   secondary: 'bg-secondary border-transparent',
   destructive: 'bg-destructive border-transparent',
   emergency: 'bg-emergency border-transparent',
+  warning: 'bg-warning border-transparent',
   outline: 'bg-transparent border-border',
 };
 
@@ -22,6 +23,7 @@ const LABEL: Record<BadgeVariant, string> = {
   secondary: 'text-secondary-foreground',
   destructive: 'text-destructive-foreground',
   emergency: 'text-emergency-foreground',
+  warning: 'text-warning-foreground',
   outline: 'text-foreground',
 };
 

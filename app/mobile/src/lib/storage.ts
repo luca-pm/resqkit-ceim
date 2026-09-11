@@ -149,6 +149,45 @@ export interface InterviewAnswer {
   answeredAt: string;
 }
 
+export type VictimStatus = 'pending' | 'in_progress' | 'done';
+
+/**
+ * One victim in a multi-victim incident. While a victim is the active one
+ * (its id === IncidentState.activeVictimId), the shared responsive/breathing/
+ * injury/ageBand/trapped/procedureId/completedSteps fields on IncidentState
+ * ARE that victim's live, in-progress data — this record is only the resting
+ * snapshot used for the victim list, urgency ranking, and past victims once
+ * done. See emergency.tsx's selectVictim/snapshotActiveVictim.
+ *
+ * Urgency ranking (lib/knowledge.ts's victimUrgencyRank) is deterministic,
+ * same guarantee as routeProcedure() — no model ever ranks victims.
+ */
+export interface VictimRecord {
+  id: string;
+  briefDescription: string;
+  responsive: string;
+  breathing: string;
+  injury: string;
+  ageBand: string;
+  trapped: string;
+  procedureId: string | null;
+  completedSteps: CompletedStep[];
+  status: VictimStatus;
+}
+
+export const newVictim = (): VictimRecord => ({
+  id: `v-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  briefDescription: '',
+  responsive: '',
+  breathing: '',
+  injury: '',
+  ageBand: '',
+  trapped: '',
+  procedureId: null,
+  completedSteps: [],
+  status: 'pending',
+});
+
 export interface IncidentState {
   startedAt: string;
   context: ContextId | null;
@@ -186,6 +225,18 @@ export interface IncidentState {
   ceimReport: CeimIncident | null;
   ceimGeneratedAt: string | null;
   ceimDegraded: boolean;
+  /** Every victim on this incident, most-urgent-first once ranked (see
+   * lib/knowledge.ts's rankVictims) — the array order itself is just
+   * insertion order. The currently active victim's own responsive/breathing/
+   * injury/ageBand/trapped/procedureId/completedSteps live on the fields
+   * above, not in this array, until they're snapshotted here. */
+  victims: VictimRecord[];
+  activeVictimId: string | null;
+  /** True once the scene-wide interview/hazards/kit stages have run once for
+   * this incident. They only ever run for the first victim — every
+   * subsequent victim in a multi-victim incident goes straight from triage
+   * to guidance, reusing the same already-captured scene context. */
+  sceneContextDone: boolean;
 }
 
 export const EMPTY_CONSENT: ConsentState = {
@@ -273,6 +324,9 @@ export const newIncident = (): IncidentState => ({
   ceimReport: null,
   ceimGeneratedAt: null,
   ceimDegraded: false,
+  victims: [],
+  activeVictimId: null,
+  sceneContextDone: false,
 });
 
 /** Merge-read helper: unknown/missing keys fall back to the given defaults. */

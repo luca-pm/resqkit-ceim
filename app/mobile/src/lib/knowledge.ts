@@ -734,6 +734,27 @@ export const routeProcedure = (triage: {
   }
 };
 
+/**
+ * Deterministic urgency ranking across victims in a multi-victim incident.
+ * Same guarantee as routeProcedure(): no model is ever involved. Lower
+ * number = more urgent = higher up the victim list.
+ */
+export const victimUrgencyRank = (v: { responsive?: string; breathing?: string; injury?: string }): number => {
+  if (v.breathing === 'no') return 0;
+  if (v.responsive === 'no') return 1;
+  if (v.injury === 'bleeding') return 2;
+  return 3;
+};
+
+/** Sorts victims most-urgent-first; ties keep their original (add) order. */
+export const rankVictims = <T extends { responsive?: string; breathing?: string; injury?: string }>(
+  victims: T[],
+): T[] =>
+  victims
+    .map((v, i) => ({ v, i }))
+    .sort((a, b) => victimUrgencyRank(a.v) - victimUrgencyRank(b.v) || a.i - b.i)
+    .map(({ v }) => v);
+
 export const INJURY_OPTIONS = [
   { value: 'bleeding', label: 'Heavy bleeding' },
   { value: 'choking', label: 'Choking / airway blocked' },

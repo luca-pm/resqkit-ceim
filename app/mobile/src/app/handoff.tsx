@@ -28,8 +28,8 @@ import { useIncident } from '@/contexts/IncidentContext';
 import { client } from '@/lib/apiClient';
 import { buildBrief } from '@/lib/brief';
 import { buildNgProtocolPayload, terminateInstitutionalSession } from '@/lib/institutionalActions';
-import { RESPONDER_PRIORITIES } from '@/lib/knowledge';
-import { RetentionChoice, profileHasHealthData } from '@/lib/storage';
+import { RESPONDER_PRIORITIES, rankVictims } from '@/lib/knowledge';
+import { RetentionChoice, VictimRecord, profileHasHealthData } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
 /** Human phrasing for the retention window, mirroring review.tsx. */
@@ -60,11 +60,28 @@ export default function HandoffScreen() {
   const [spoken, setSpoken] = useState('');
   const [narrating, setNarrating] = useState(false);
   const [buildingNgPayload, setBuildingNgPayload] = useState(false);
+  // Which victim this brief describes, when an incident has more than one.
+  // null means "not chosen yet" — defaulted below to the most urgent victim
+  // still in progress, or the active one, rather than forcing a tap before
+  // any brief is shown.
+  const [selectedVictimId, setSelectedVictimId] = useState<string | null>(null);
+
+  const rankedVictims = useMemo(
+    () => (incident ? rankVictims(incident.victims) : []),
+    [incident],
+  );
+  const selectedVictim: VictimRecord | null = incident && incident.victims.length > 1
+    ? (rankedVictims.find((v) => v.id === selectedVictimId)
+        ?? rankedVictims.find((v) => v.id === incident.activeVictimId)
+        ?? rankedVictims.find((v) => v.status !== 'done')
+        ?? rankedVictims[0]
+        ?? null)
+    : null;
 
   const brief = useMemo(() => {
     if (!incident) return '';
-    return buildBrief(incident, profile, { includeHealth, includeReporter });
-  }, [incident, profile, includeHealth, includeReporter]);
+    return buildBrief(incident, profile, { includeHealth, includeReporter }, selectedVictim);
+  }, [incident, profile, includeHealth, includeReporter, selectedVictim]);
 
   if (!incident) {
     return (
@@ -250,6 +267,45 @@ export default function HandoffScreen() {
           )}
         </CardContent>
       </Card>
+
+      {incident.victims.length > 1 && (
+        <Card>
+          <CardContent className="gap-3">
+            <Text className="font-semibold text-foreground">Which victim is this crew taking?</Text>
+            <Text className="text-xs text-muted-foreground">
+              Multiple people on this scene — hand each crew the brief for their own victim. Ranked
+              most urgent first.
+            </Text>
+            <View className="gap-2">
+              {rankedVictims.map((v, idx) => {
+                const active = v.id === (selectedVictim?.id ?? null);
+                return (
+                  <Pressable
+                    key={v.id}
+                    onPress={() => setSelectedVictimId(v.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    className={`rounded-md border p-3 ${
+                      active ? 'border-primary bg-primary/10' : 'border-border bg-card'
+                    }`}
+                  >
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text
+                        className={`flex-1 text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
+                      >
+                        {`#${idx + 1} — ${v.briefDescription || 'No description given'}`}
+                      </Text>
+                      <Badge variant={v.status === 'done' ? 'secondary' : 'outline'}>
+                        {v.status.replace('_', ' ')}
+                      </Badge>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="gap-3">

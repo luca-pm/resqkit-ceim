@@ -35,6 +35,11 @@
   --destructive-foreground: 0 0% 100%;
   --emergency: 356 72% 48%;
   --emergency-foreground: 0 0% 100%;
+  /* Second-tier urgency (e.g. an unresponsive-but-breathing victim in the
+   * multi-victim ranking) — distinct from --emergency so only a
+   * breathing-critical victim ever reads as the reserved red. */
+  --warning: 38 92% 50%;
+  --warning-foreground: 26 45% 14%;
   --border: 210 20% 85%;
   --input: 210 20% 85%;
   --ring: 202 74% 42%;
@@ -65,6 +70,8 @@
   --destructive-foreground: 0 0% 100%;
   --emergency: 356 80% 60%;
   --emergency-foreground: 0 0% 100%;
+  --warning: 38 88% 56%;
+  --warning-foreground: 26 45% 12%;
   --border: 207 25% 22%;
   --input: 207 25% 22%;
   --ring: 202 80% 60%;

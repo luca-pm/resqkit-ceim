@@ -40,6 +40,11 @@ module.exports = {
           DEFAULT: 'hsl(var(--emergency))',
           foreground: 'hsl(var(--emergency-foreground))',
         },
+        // Second-tier urgency — never the reserved red, see global.css.
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',

@@ -9,14 +9,15 @@
  * the wizard (breathing === 'no') already routes straight to `guide`,
  * bypassing this stage entirely, so nothing here ever delays CPR.
  */
-import React, { useState } from 'react';
-import { ActivityIndicator, Text, TextInput, View } from 'react-native';
-import { ChevronRight, MessageCircleQuestion, Sparkles } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { ChevronRight, MessageCircleQuestion, Sparkles, Volume2 } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/toast';
+import VoiceInput from '@/components/VoiceInput';
 import { client } from '@/lib/apiClient';
 import {
   CeimGenerateResponse,
@@ -24,6 +25,7 @@ import {
   buildKnownFactsFromIncident,
 } from '@/lib/ceim';
 import { logCeimGenerated, logInterviewAnswer } from '@/lib/institutionalActions';
+import { speak, stopSpeaking } from '@/lib/speech';
 import { AppSettings, IncidentState, InstitutionalLogEntry } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
@@ -62,6 +64,15 @@ const InterviewStage: React.FC<InterviewStageProps> = ({
 
   const prompt = INTERVIEW_PROMPTS[index];
   const isLast = index === INTERVIEW_PROMPTS.length - 1;
+
+  // Read each prompt aloud as it appears, so a bystander whose hands are
+  // full doesn't need to look at the screen to know what's being asked.
+  // Stopped on unmount so it never keeps talking after the user navigates
+  // away (e.g. the breathing=no fast path jumping straight past this stage).
+  useEffect(() => {
+    if (!generating) speak(prompt.prompt);
+    return () => stopSpeaking();
+  }, [prompt.prompt, generating]);
 
   const generateReport = async () => {
     setGenerating(true);
@@ -155,7 +166,17 @@ const InterviewStage: React.FC<InterviewStageProps> = ({
 
       <Card>
         <CardContent className="gap-3">
-          <Text className="text-base font-medium text-foreground">{prompt.prompt}</Text>
+          <View className="flex-row items-start justify-between gap-2">
+            <Text className="flex-1 text-base font-medium text-foreground">{prompt.prompt}</Text>
+            <Pressable
+              onPress={() => speak(prompt.prompt)}
+              accessibilityRole="button"
+              accessibilityLabel="Read question aloud again"
+              hitSlop={8}
+            >
+              <Volume2 size={18} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
           <TextInput
             value={answerText}
             onChangeText={setAnswerText}
@@ -166,6 +187,7 @@ const InterviewStage: React.FC<InterviewStageProps> = ({
             className="min-h-[96px] rounded-md border border-input bg-background p-3 text-foreground"
             textAlignVertical="top"
           />
+          <VoiceInput key={prompt.id} value={answerText} onTranscript={setAnswerText} />
         </CardContent>
       </Card>
 

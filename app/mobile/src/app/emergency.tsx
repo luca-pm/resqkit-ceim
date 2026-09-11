@@ -9,6 +9,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Location from 'expo-location';
@@ -26,6 +27,7 @@ import {
   Radio,
   ShieldAlert,
   Users,
+  Volume2,
 } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
@@ -54,12 +56,15 @@ import {
   INJURY_OPTIONS,
   hazardsForContext,
   procedureById,
+  rankVictims,
   routeProcedure,
+  victimUrgencyRank,
 } from '@/lib/knowledge';
-import { CompletedStep } from '@/lib/storage';
+import { speak, stopSpeaking } from '@/lib/speech';
+import { CompletedStep, VictimRecord, newVictim } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
-type Stage = 'context' | 'call' | 'triage' | 'interview' | 'hazards' | 'kit' | 'guide';
+type Stage = 'context' | 'call' | 'victims' | 'triage' | 'interview' | 'hazards' | 'kit' | 'guide';
 
 const CONTEXT_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   car: Car,
@@ -121,6 +126,101 @@ const ChipSelect: React.FC<{
   </View>
 );
 
+const TRIAGE_STEP_COUNT = 6;
+
+/** One question per screen for the triage wizard — module-scoped so its
+ * identity is stable across renders (React Compiler flags a component type
+ * created inline in render, since that resets its own state every time). */
+const TriageStepShell: React.FC<{
+  step: number;
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  onSkip?: () => void;
+  children: React.ReactNode;
+}> = ({ step, title, subtitle, onBack, onSkip, children }) => {
+  const colors = useTokenColors();
+
+  // Read each question aloud as it appears, same reasoning as
+  // InterviewStage's prompts — a bystander's hands and eyes are often busy
+  // with the injured person, not the phone. Stopped on unmount so it never
+  // talks over the next screen (e.g. the CPR fast path taking over).
+  useEffect(() => {
+    speak(subtitle ? `${title}. ${subtitle}` : title);
+    return () => stopSpeaking();
+  }, [title, subtitle]);
+
+  return (
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <View>
+        <Text className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Question {step + 1} of {TRIAGE_STEP_COUNT}
+        </Text>
+        <View className="mt-1 flex-row items-start justify-between gap-2">
+          <Text className="flex-1 text-2xl font-bold text-foreground">{title}</Text>
+          <Pressable
+            onPress={() => speak(subtitle ? `${title}. ${subtitle}` : title)}
+            accessibilityRole="button"
+            accessibilityLabel="Read question aloud again"
+            hitSlop={8}
+            className="mt-1"
+          >
+            <Volume2 size={20} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+        {subtitle && <Text className="mt-2 text-sm text-muted-foreground">{subtitle}</Text>}
+      </View>
+      {children}
+      <View className="flex-row items-center justify-between">
+        <Pressable onPress={onBack} disabled={!onBack} hitSlop={8}>
+          <Text className={`text-sm font-medium ${onBack ? 'text-foreground' : 'text-transparent'}`}>← Back</Text>
+        </Pressable>
+        {onSkip && (
+          <Pressable onPress={onSkip} hitSlop={8}>
+            <Text className="text-sm font-medium text-muted-foreground">Don&apos;t know / Skip →</Text>
+          </Pressable>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+const CPR_BANNER_TEXT = 'Not breathing means CPR now. Skip the rest of the questions.';
+
+/** Module-scoped for the same reason as TriageStepShell — and because its
+ * own useEffect (reading the banner aloud once) can only be called
+ * unconditionally from within its own render, not from inside the parent's
+ * `if (incident.breathing === 'no')` branch. */
+const CprFastPathBanner: React.FC<{ onStart: () => void; onRecheck: () => void }> = ({ onStart, onRecheck }) => {
+  const colors = useTokenColors();
+
+  useEffect(() => {
+    speak(CPR_BANNER_TEXT);
+    return () => stopSpeaking();
+  }, []);
+
+  return (
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <Card className="border-emergency">
+        <CardContent className="gap-3">
+          <View className="flex-row items-start gap-2">
+            <ShieldAlert size={16} color={colors.emergency} style={{ marginTop: 2 }} />
+            <Text className="flex-1 text-sm font-semibold text-emergency">{CPR_BANNER_TEXT}</Text>
+          </View>
+          <Button size="lg" onPress={onStart}>
+            Start CPR guidance
+          </Button>
+          <Button variant="secondary" onPress={onRecheck}>
+            <Text className="text-sm font-medium text-secondary-foreground">
+              Actually, let me re-check that answer
+            </Text>
+          </Button>
+        </CardContent>
+      </Card>
+    </ScrollView>
+  );
+};
+
 export default function EmergencyScreen() {
   const router = useRouter();
   const {
@@ -161,6 +261,13 @@ export default function EmergencyScreen() {
    */
   const [victimDraft, setVictimDraft] = useState<string | null>(null);
 
+  // Triage is a sequential, one-question-per-screen wizard: 0 responsive,
+  // 1 breathing, 2 injury, 3 victim count, 4 age band, 5 trapped. Tapping an
+  // answer both records it and advances; a Back link and a "Don't know"
+  // shortcut are offered on every screen. This is separate from `stage`
+  // because triage is one stage but many small screens within it.
+  const [triageStep, setTriageStep] = useState(0);
+
   const onSession = (id: string, code: string | null) =>
     updateIncident({ backendSessionId: id, sessionCode: code });
 
@@ -172,6 +279,16 @@ export default function EmergencyScreen() {
     }
     if (!incident) startIncident();
   }, [ready, consent.disclaimerAcknowledged, incident, startIncident, router]);
+
+  // Every incident needs at least one victim record to hang the triage/guide
+  // flow off of — seed it once, right after the incident itself is created,
+  // rather than special-casing "no victims yet" throughout the render below.
+  useEffect(() => {
+    if (incident && incident.victims.length === 0) {
+      const v = newVictim();
+      updateIncident({ victims: [v], activeVictimId: v.id });
+    }
+  }, [incident, updateIncident]);
 
   const captureLocation = async () => {
     setLocating(true);
@@ -215,6 +332,71 @@ export default function EmergencyScreen() {
       </View>
     );
   }
+
+  const addVictim = () => updateIncident({ victims: [...incident.victims, newVictim()] });
+
+  const updateVictimBrief = (id: string, patch: Partial<VictimRecord>) =>
+    updateIncident({ victims: incident.victims.map((v) => (v.id === id ? { ...v, ...patch } : v)) });
+
+  /** Makes `id` the active victim: loads its (possibly blank) triage answers
+   * into the shared scratch fields the rest of the wizard already reads. */
+  const selectVictim = (id: string) => {
+    const v = incident.victims.find((vv) => vv.id === id);
+    if (!v) return;
+    updateIncident({
+      activeVictimId: id,
+      responsive: v.responsive,
+      breathing: v.breathing,
+      injury: v.injury,
+      ageBand: v.ageBand,
+      trapped: v.trapped,
+      procedureId: v.procedureId,
+      completedSteps: v.completedSteps,
+      victims: incident.victims.map((vv) =>
+        vv.id === id && vv.status === 'pending' ? { ...vv, status: 'in_progress' } : vv,
+      ),
+    });
+    setTriageStep(0);
+    setStage('triage');
+  };
+
+  /** Saves the shared scratch fields back onto the active victim's own
+   * record — called whenever the wizard moves on from that victim (to the
+   * next one, or to handoff), so nothing is lost and the list/ranking stay
+   * accurate. */
+  const snapshotActiveVictim = (status: VictimRecord['status']) => {
+    if (!incident.activeVictimId) return;
+    updateIncident({
+      victims: incident.victims.map((v) =>
+        v.id === incident.activeVictimId
+          ? {
+              ...v,
+              responsive: incident.responsive,
+              breathing: incident.breathing,
+              injury: incident.injury,
+              ageBand: incident.ageBand,
+              trapped: incident.trapped,
+              procedureId: incident.procedureId,
+              completedSteps: incident.completedSteps,
+              status,
+            }
+          : v,
+      ),
+    });
+  };
+
+  /** After the last triage question: the scene-wide interview/hazards/kit
+   * stages only ever run once per incident (for the first victim) — every
+   * later victim already has that context, so their triage goes straight to
+   * guidance instead of re-asking scene-level questions. */
+  const afterTriage = () => {
+    if (incident.sceneContextDone) {
+      updateIncident({ procedureId: routeProcedure(incident) });
+      setStage('guide');
+    } else {
+      setStage('interview');
+    }
+  };
 
   /* ------------------------- Stage: context ------------------------- */
   if (stage === 'context') {
@@ -365,7 +547,7 @@ export default function EmergencyScreen() {
                 logInstitutional,
                 onSession,
               );
-              setStage('triage');
+              setStage('victims');
             }}
           >
             <Check size={20} color={colors.secondaryForeground} />
@@ -373,7 +555,7 @@ export default function EmergencyScreen() {
               Someone already called 112
             </Text>
           </Button>
-          <Button size="lg" onPress={() => setStage('triage')}>
+          <Button size="lg" onPress={() => setStage('victims')}>
             <Text className="text-base font-medium text-primary-foreground">Continue to first aid</Text>
             <ChevronRight size={20} color={colors.primaryForeground} />
           </Button>
@@ -458,30 +640,144 @@ export default function EmergencyScreen() {
     );
   }
 
+  /* ------------------------- Stage: victims -------------------------- */
+  if (stage === 'victims') {
+    const yesNoUnsure = [
+      { value: '', label: 'Not sure' },
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+    ];
+    const ranked = rankVictims(incident.victims);
+
+    return (
+      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+        <View>
+          <Text className="text-2xl font-bold text-foreground">Who needs help?</Text>
+          <Text className="mt-2 text-sm text-muted-foreground">
+            More than one injured person? Add each one with a brief description. ResQKit ranks them
+            by urgency below — no AI involved, only the answers you give here — then you pick who to
+            help first.
+          </Text>
+        </View>
+
+        <View className="gap-3">
+          {ranked.map((v, idx) => {
+            const rank = victimUrgencyRank(v);
+            const done = v.status === 'done';
+            // Three visual tiers, not a single "urgent" cutoff: only a
+            // breathing-critical victim (rank 0) gets the reserved red —
+            // an unresponsive-but-breathing or heavily-bleeding victim
+            // (rank 1-2) reads as amber, distinct but a notch down.
+            const severity: 'critical' | 'warning' | 'normal' =
+              done ? 'normal' : rank === 0 ? 'critical' : rank <= 2 ? 'warning' : 'normal';
+            const cardBorderClass =
+              severity === 'critical' ? 'border-emergency' : severity === 'warning' ? 'border-warning' : undefined;
+            const priorityBadgeVariant =
+              severity === 'critical' ? 'emergency' : severity === 'warning' ? 'warning' : 'secondary';
+            return (
+              // `layout` animates this card gliding to its new slot whenever
+              // the sort order changes (Kahoot-leaderboard style) — keyed on
+              // the stable victim id so Reanimated tracks it across reorders
+              // instead of treating it as a fresh mount.
+              <Animated.View key={v.id} layout={LinearTransition.springify().damping(18).stiffness(160)}>
+                <Card className={cardBorderClass}>
+                  <CardContent className="gap-3">
+                    <View className="flex-row items-center justify-between">
+                      <Badge variant={priorityBadgeVariant}>{`#${idx + 1} priority`}</Badge>
+                      <Badge variant={done ? 'secondary' : v.status === 'in_progress' ? 'default' : 'outline'}>
+                        {done ? 'Done' : v.status === 'in_progress' ? 'In progress' : 'Not started'}
+                      </Badge>
+                    </View>
+                    <TextInput
+                      value={v.briefDescription}
+                      onChangeText={(text) => updateVictimBrief(v.id, { briefDescription: text })}
+                      editable={!done}
+                      multiline
+                      placeholder="Brief description — age, what happened, what you see"
+                      placeholderTextColor={colors.mutedForeground}
+                      className="min-h-[60px] rounded-md border border-input bg-background p-3 text-sm text-foreground"
+                      textAlignVertical="top"
+                    />
+                    {!done && (
+                      <>
+                        <View className="gap-1">
+                          <Label>Breathing normally?</Label>
+                          <ChipSelect
+                            options={yesNoUnsure}
+                            value={v.breathing}
+                            onChange={(val) => updateVictimBrief(v.id, { breathing: val })}
+                          />
+                        </View>
+                        <View className="gap-1">
+                          <Label>Responds to you?</Label>
+                          <ChipSelect
+                            options={yesNoUnsure}
+                            value={v.responsive}
+                            onChange={(val) => updateVictimBrief(v.id, { responsive: val })}
+                          />
+                        </View>
+                      </>
+                    )}
+                    <Button variant={done ? 'secondary' : 'default'} disabled={done} onPress={() => selectVictim(v.id)}>
+                      <Text
+                        className={`text-sm font-medium ${done ? 'text-secondary-foreground' : 'text-primary-foreground'}`}
+                      >
+                        {done ? 'Completed' : v.status === 'in_progress' ? 'Continue with this victim' : 'Start with this victim'}
+                      </Text>
+                      {!done && <ChevronRight size={18} color={colors.primaryForeground} />}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <Button variant="secondary" onPress={addVictim}>
+          <Users size={16} color={colors.secondaryForeground} />
+          <Text className="text-sm font-medium text-secondary-foreground">Add another victim</Text>
+        </Button>
+      </ScrollView>
+    );
+  }
+
   /* -------------------------- Stage: triage ------------------------- */
   if (stage === 'triage') {
-    const canContinue = incident.responsive !== '' && incident.breathing !== '';
-    const choice = (
+    // The CPR fast path pre-empts the rest of the wizard the moment
+    // breathing is answered "no", exactly like before — it just now owns
+    // the whole screen instead of being an extra card underneath more
+    // questions, since nothing after it matters until CPR is started.
+    if (incident.breathing === 'no') {
+      return (
+        <CprFastPathBanner
+          onStart={() => {
+            // Every kit-gated CPR step already has a withoutItem fallback
+            // (compression-only CPR, "keep compressing" without an AED), so
+            // nothing here depends on having visited the kit screen — time
+            // to first compression outranks completeness of data capture.
+            updateIncident({ procedureId: 'cpr_aed' });
+            setStage('guide');
+          }}
+          onRecheck={() => {
+            updateIncident({ breathing: '' });
+            setTriageStep(1);
+          }}
+        />
+      );
+    }
+
+    const rowChoice = (
       field: 'responsive' | 'breathing',
       value: string,
       label: string,
-      danger?: boolean,
+      danger: boolean,
+      onPress: () => void,
     ) => {
       const active = incident[field] === value;
       return (
         <Pressable
           key={value}
-          onPress={() => {
-            updateIncident({ [field]: value });
-            void logTriageAnswer(
-              incident,
-              settings.realDataMode,
-              field,
-              value,
-              logInstitutional,
-              onSession,
-            );
-          }}
+          onPress={onPress}
           accessibilityRole="radio"
           accessibilityState={{ selected: active }}
           className={`flex-1 rounded-md border p-3 ${
@@ -507,100 +803,100 @@ export default function EmergencyScreen() {
       );
     };
 
-    return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">The injured person</Text>
-          <Text className="mt-2 text-sm text-muted-foreground">
-            Two questions decide everything. Answer for the most seriously injured person first.
-          </Text>
-        </View>
+    const answerYesNo = (field: 'responsive' | 'breathing', value: string) => {
+      updateIncident({ [field]: value });
+      void logTriageAnswer(incident, settings.realDataMode, field, value, logInstitutional, onSession);
+      setTriageStep((s) => s + 1);
+    };
 
-        <Card>
-          <CardContent className="gap-4">
-            <View>
-              <Text className="mb-2 font-semibold text-foreground">
-                Do they respond when you shout and tap them?
-              </Text>
-              <View className="flex-row gap-2">
-                {choice('responsive', 'yes', 'Yes')}
-                {choice('responsive', 'no', 'No', true)}
-                {choice('responsive', 'unsure', 'Unsure')}
-              </View>
-            </View>
-            <View>
-              <Text className="mb-2 font-semibold text-foreground">Are they breathing normally?</Text>
-              <Text className="mb-2 text-xs text-muted-foreground">
-                Occasional gasping is NOT normal breathing.
-              </Text>
-              <View className="flex-row gap-2">
-                {choice('breathing', 'yes', 'Yes')}
-                {choice('breathing', 'no', 'No', true)}
-                {choice('breathing', 'unsure', 'Unsure')}
-              </View>
-            </View>
-          </CardContent>
-        </Card>
-
-        {incident.breathing === 'no' && (
-          <Card className="border-emergency">
-            <CardContent>
-              <View className="flex-row items-start gap-2">
-                <ShieldAlert size={16} color={colors.emergency} style={{ marginTop: 2 }} />
-                <Text className="flex-1 text-sm font-semibold text-emergency">
-                  Not breathing means CPR now. Skip the rest of the questions.
-                </Text>
-              </View>
-              <Button
-                className="mt-3"
-                size="lg"
-                onPress={() => {
-                  // Straight to guidance, matching the banner's own promise to
-                  // skip the rest of the questions. Every kit-gated CPR step
-                  // already has a withoutItem fallback (compression-only CPR,
-                  // "keep compressing" without an AED), so nothing here
-                  // depends on having visited the kit screen — time to first
-                  // compression outranks completeness of data capture.
-                  updateIncident({ procedureId: 'cpr_aed' });
-                  setStage('guide');
-                }}
-              >
-                Start CPR guidance
-              </Button>
+    /* ---- Step 0: responsive ---- */
+    if (triageStep === 0) {
+      return (
+        <TriageStepShell step={triageStep}
+          title="Do they respond when you shout and tap them?"
+          onSkip={() => answerYesNo('responsive', 'unsure')}
+        >
+          <Card>
+            <CardContent className="flex-row gap-2">
+              {rowChoice('responsive', 'yes', 'Yes', false, () => answerYesNo('responsive', 'yes'))}
+              {rowChoice('responsive', 'no', 'No', true, () => answerYesNo('responsive', 'no'))}
+              {rowChoice('responsive', 'unsure', 'Unsure', false, () => answerYesNo('responsive', 'unsure'))}
             </CardContent>
           </Card>
-        )}
+        </TriageStepShell>
+      );
+    }
 
-        <Card>
-          <CardContent className="gap-4">
-            <View className="gap-1.5">
-              <Label>Main visible problem</Label>
-              <View className="gap-2">
-                {INJURY_OPTIONS.map((opt) => {
-                  const active = incident.injury === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
-                      onPress={() => updateIncident({ injury: opt.value })}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: active }}
-                      className={`rounded-md border p-2.5 ${
-                        active ? 'border-primary bg-primary/10' : 'border-border bg-card'
-                      }`}
-                    >
-                      <Text className={`text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+    /* ---- Step 1: breathing ---- */
+    if (triageStep === 1) {
+      return (
+        <TriageStepShell step={triageStep}
+          title="Are they breathing normally?"
+          subtitle="Occasional gasping is NOT normal breathing."
+          onBack={() => setTriageStep(0)}
+          onSkip={() => answerYesNo('breathing', 'unsure')}
+        >
+          <Card>
+            <CardContent className="flex-row gap-2">
+              {rowChoice('breathing', 'yes', 'Yes', false, () => answerYesNo('breathing', 'yes'))}
+              {rowChoice('breathing', 'no', 'No', true, () => answerYesNo('breathing', 'no'))}
+              {rowChoice('breathing', 'unsure', 'Unsure', false, () => answerYesNo('breathing', 'unsure'))}
+            </CardContent>
+          </Card>
+        </TriageStepShell>
+      );
+    }
 
-            <View className="gap-1.5">
+    /* ---- Step 2: main injury ---- */
+    if (triageStep === 2) {
+      return (
+        <TriageStepShell step={triageStep}
+          title="Main visible problem"
+          onBack={() => setTriageStep(1)}
+          onSkip={() => {
+            updateIncident({ injury: 'unknown' });
+            setTriageStep(3);
+          }}
+        >
+          <Card>
+            <CardContent className="gap-2">
+              {INJURY_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    updateIncident({ injury: opt.value });
+                    setTriageStep(3);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: incident.injury === opt.value }}
+                  className={`rounded-md border p-2.5 ${
+                    incident.injury === opt.value ? 'border-primary bg-primary/10' : 'border-border bg-card'
+                  }`}
+                >
+                  <Text
+                    className={`text-sm ${
+                      incident.injury === opt.value ? 'font-medium text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </CardContent>
+          </Card>
+        </TriageStepShell>
+      );
+    }
+
+    /* ---- Step 3: victim count ---- */
+    if (triageStep === 3) {
+      return (
+        <TriageStepShell step={triageStep} title="How many injured people" onBack={() => setTriageStep(2)} onSkip={() => setTriageStep(4)}>
+          <Card>
+            <CardContent className="gap-1.5">
               <View className="flex-row items-center gap-1.5">
                 <Users size={16} color={colors.foreground} />
-                <Label>How many injured people</Label>
+                <Label>Count</Label>
               </View>
               <Input
                 keyboardType="number-pad"
@@ -618,33 +914,73 @@ export default function EmergencyScreen() {
                 // dropping the draft falls back to the last committed value.
                 onBlur={() => setVictimDraft(null)}
               />
-            </View>
+              <Button
+                className="mt-2"
+                size="lg"
+                onPress={() => {
+                  setVictimDraft(null);
+                  setTriageStep(4);
+                }}
+              >
+                <Text className="text-base font-medium text-primary-foreground">Next</Text>
+                <ChevronRight size={20} color={colors.primaryForeground} />
+              </Button>
+            </CardContent>
+          </Card>
+        </TriageStepShell>
+      );
+    }
 
-            <View className="gap-1.5">
-              <Label>Approximate age</Label>
+    /* ---- Step 4: age band ---- */
+    if (triageStep === 4) {
+      return (
+        <TriageStepShell step={triageStep}
+          title="Approximate age"
+          onBack={() => setTriageStep(3)}
+          onSkip={() => {
+            updateIncident({ ageBand: '' });
+            setTriageStep(5);
+          }}
+        >
+          <Card>
+            <CardContent>
               <ChipSelect
                 options={AGE_BANDS.map((v) => ({ value: v, label: AGE_LABELS[v] ?? v }))}
                 value={incident.ageBand}
-                onChange={(v) => updateIncident({ ageBand: v })}
+                onChange={(v) => {
+                  updateIncident({ ageBand: v });
+                  setTriageStep(5);
+                }}
               />
-            </View>
+            </CardContent>
+          </Card>
+        </TriageStepShell>
+      );
+    }
 
-            <View className="gap-1.5">
-              <Label>Can you reach them?</Label>
-              <ChipSelect
-                options={TRAPPED_OPTIONS}
-                value={incident.trapped}
-                onChange={(v) => updateIncident({ trapped: v })}
-              />
-            </View>
+    /* ---- Step 5: trapped / reachable — last question ---- */
+    return (
+      <TriageStepShell step={triageStep}
+        title="Can you reach them?"
+        onBack={() => setTriageStep(4)}
+        onSkip={() => {
+          updateIncident({ trapped: '' });
+          afterTriage();
+        }}
+      >
+        <Card>
+          <CardContent>
+            <ChipSelect
+              options={TRAPPED_OPTIONS}
+              value={incident.trapped}
+              onChange={(v) => {
+                updateIncident({ trapped: v });
+                afterTriage();
+              }}
+            />
           </CardContent>
         </Card>
-
-        <Button size="lg" disabled={!canContinue} onPress={() => setStage('interview')}>
-          <Text className="text-base font-medium text-primary-foreground">Continue</Text>
-          <ChevronRight size={20} color={colors.primaryForeground} />
-        </Button>
-      </ScrollView>
+      </TriageStepShell>
     );
   }
 
@@ -781,7 +1117,7 @@ export default function EmergencyScreen() {
           size="lg"
           onPress={() => {
             const id = incident.procedureId ?? routeProcedure(incident);
-            updateIncident({ procedureId: id });
+            updateIncident({ procedureId: id, sceneContextDone: true });
             void logKitSelection(
               incident,
               settings.realDataMode,
@@ -811,7 +1147,14 @@ export default function EmergencyScreen() {
             <Text className="text-sm text-muted-foreground">
               No guidance matches those answers. Go back and review the triage questions.
             </Text>
-            <Button className="mt-3" variant="secondary" onPress={() => setStage('triage')}>
+            <Button
+              className="mt-3"
+              variant="secondary"
+              onPress={() => {
+                setTriageStep(0);
+                setStage('triage');
+              }}
+            >
               Back to triage
             </Button>
           </CardContent>
@@ -833,6 +1176,34 @@ export default function EmergencyScreen() {
     );
   };
 
+  // Other victims still waiting for this one to finish — offered as a loop
+  // back to the victim list rather than forcing the user through handoff
+  // first, since a bystander alone on scene may need to move straight from
+  // one victim to the next.
+  const pendingVictims = incident.victims.filter(
+    (v) => v.status !== 'done' && v.id !== incident.activeVictimId,
+  );
+
+  const goToHandoff = () => {
+    snapshotActiveVictim('done');
+    router.push('/handoff');
+  };
+
+  const nextVictim = () => {
+    snapshotActiveVictim('done');
+    updateIncident({
+      activeVictimId: null,
+      responsive: '',
+      breathing: '',
+      injury: '',
+      ageBand: '',
+      trapped: '',
+      procedureId: null,
+      completedSteps: [],
+    });
+    setStage('victims');
+  };
+
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
       <ProcedureRunner
@@ -840,7 +1211,7 @@ export default function EmergencyScreen() {
         kitItems={incident.kitItems}
         completedSteps={incident.completedSteps}
         onStepDone={addStep}
-        onFinish={() => router.push('/handoff')}
+        onFinish={goToHandoff}
       />
       <View className="gap-2">
         <Button variant="secondary" onPress={() => setStage('kit')}>
@@ -851,7 +1222,15 @@ export default function EmergencyScreen() {
             View scene report
           </Button>
         )}
-        <Button variant="secondary" onPress={() => router.push('/handoff')}>
+        {pendingVictims.length > 0 && (
+          <Button variant="secondary" onPress={nextVictim}>
+            <Users size={16} color={colors.secondaryForeground} />
+            <Text className="text-sm font-medium text-secondary-foreground">
+              {`Next victim (${pendingVictims.length} waiting)`}
+            </Text>
+          </Button>
+        )}
+        <Button variant="secondary" onPress={goToHandoff}>
           Rescuers are here — open handoff
         </Button>
       </View>

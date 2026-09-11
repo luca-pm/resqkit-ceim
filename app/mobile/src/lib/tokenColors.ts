@@ -29,6 +29,9 @@ export interface TokenColors {
   /** The only reserved red — 112 / hazards / critical steps. */
   emergency: string;
   emergencyForeground: string;
+  /** Second-tier urgency (e.g. victim ranking) — never the reserved red. */
+  warning: string;
+  warningForeground: string;
   border: string;
 }
 
@@ -48,6 +51,8 @@ export const LIGHT_COLORS: TokenColors = {
   destructiveForeground: 'hsl(0 0% 100%)',
   emergency: 'hsl(356 72% 48%)',
   emergencyForeground: 'hsl(0 0% 100%)',
+  warning: 'hsl(38 92% 50%)',
+  warningForeground: 'hsl(26 45% 14%)',
   border: 'hsl(210 20% 85%)',
 };
 
@@ -67,6 +72,8 @@ export const DARK_COLORS: TokenColors = {
   destructiveForeground: 'hsl(0 0% 100%)',
   emergency: 'hsl(356 80% 60%)',
   emergencyForeground: 'hsl(0 0% 100%)',
+  warning: 'hsl(38 88% 56%)',
+  warningForeground: 'hsl(26 45% 12%)',
   border: 'hsl(207 25% 22%)',
 };
 

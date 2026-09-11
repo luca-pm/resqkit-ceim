@@ -97,6 +97,29 @@ def test_merge_extracted_deduplicates_hazard_source_tagging(service):
     assert ceim.scene_observations[0].value == "two vehicles stopped to help"
 
 
+def test_merge_extracted_drops_scene_observation_that_duplicates_a_hazard(service):
+    """The known CEIM quality gap: the model sometimes echoes a hazard it
+    just extracted into scene_observations too. This is a code-level guard
+    (not another prompt sentence, which a 3B model won't reliably follow).
+    It catches exact/near-exact echoes, not full semantic paraphrase - a
+    text-similarity check can't do the latter without false-positiving on
+    genuinely distinct observations."""
+    ceim = _skeleton(service)
+    payload = {
+        "victims": [],
+        "hazards": [{"code": "traffic", "description": "heavy traffic on the road"}],
+        "scene_observations": [
+            "heavy traffic on the road",  # exact echo of the hazard - must be dropped
+            "there's heavy traffic on the road right now",  # hazard text embedded verbatim - must be dropped
+            "two vehicles stopped to help",  # genuinely different - must survive
+        ],
+    }
+    service._merge_extracted(ceim, payload)
+    assert len(ceim.hazards) == 1
+    observation_values = [o.value for o in ceim.scene_observations]
+    assert observation_values == ["two vehicles stopped to help"]
+
+
 def test_merge_extracted_drops_hazard_code_not_in_whitelist(service):
     """An invented code from the model must not pass through as if it were
     a real whitelist match - only the free-text description survives."""

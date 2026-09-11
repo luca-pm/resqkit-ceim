@@ -20,6 +20,7 @@ and curated PROCEDURES remain the sole source of guidance shown to the user,
 completely untouched by CEIM.
 """
 
+import difflib
 import json
 import logging
 from datetime import datetime, timezone
@@ -54,6 +55,32 @@ def _cap(text: Any) -> str:
     if len(s) > MAX_FIELD_CHARS:
         s = s[:MAX_FIELD_CHARS].rstrip() + "..."
     return s
+
+
+# Small 3B extraction models don't reliably follow the prompt's "don't repeat
+# a hazard in scene_observations" rule, so it's enforced here in code instead
+# of relying on another sentence in the prompt. This only catches exact or
+# near-exact echoes (substring, or near-identical wording via the similarity
+# ratio) - it is not semantic paraphrase detection, which text similarity
+# alone can't do reliably without false positives on genuinely different
+# observations. A true paraphrase (different words, same meaning) can still
+# slip through; this is a known, non-safety quality gap, not eliminated.
+_DUPLICATE_SIMILARITY_THRESHOLD = 0.82
+
+
+def _is_near_duplicate(text: str, existing_texts: List[str]) -> bool:
+    norm = text.strip().lower()
+    if not norm:
+        return False
+    for existing in existing_texts:
+        existing_norm = existing.strip().lower()
+        if not existing_norm:
+            continue
+        if norm in existing_norm or existing_norm in norm:
+            return True
+        if difflib.SequenceMatcher(None, norm, existing_norm).ratio() >= _DUPLICATE_SIMILARITY_THRESHOLD:
+            return True
+    return False
 
 
 class CeimService:
@@ -200,9 +227,10 @@ class CeimService:
 
         observations_in = parsed.get("scene_observations")
         if isinstance(observations_in, list):
+            hazard_descriptions = [h.description.value for h in ceim.hazards if h.description and h.description.value]
             for text in observations_in[:MAX_LIST_ITEMS]:
                 capped = _cap(text)
-                if capped:
+                if capped and not _is_near_duplicate(capped, hazard_descriptions):
                     ceim.scene_observations.append(
                         Fact(value=capped, source="bystander_stated", confidence="medium")
                     )

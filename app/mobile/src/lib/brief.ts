@@ -15,7 +15,7 @@ import {
   procedureById,
 } from './knowledge';
 // Mobile's storage.ts is the port of web's localStore.ts — same types, async I/O.
-import { IncidentState, SafetyProfile } from './storage';
+import { IncidentState, SafetyProfile, VictimRecord } from './storage';
 
 const label = (value: string, options: { value: string; label: string }[]) =>
   options.find((o) => o.value === value)?.label ?? value;
@@ -55,13 +55,29 @@ export interface BriefOptions {
   includeReporter: boolean;
 }
 
+/**
+ * Which victim's status/actions section 3/6 describe. Defaults to the
+ * incident's own scratch fields (today's single-victim behaviour, byte-for-
+ * byte unchanged) when no specific victim is passed — handoff.tsx only
+ * passes one once an incident actually has more than one victim.
+ */
 export const buildBrief = (
   incident: IncidentState,
   profile: SafetyProfile,
   options: BriefOptions,
+  victim?: VictimRecord | null,
 ): string => {
   const lines: string[] = [];
   const ctx = CONTEXTS.find((c) => c.id === incident.context);
+  const vf = victim ?? {
+    responsive: incident.responsive,
+    breathing: incident.breathing,
+    injury: incident.injury,
+    ageBand: incident.ageBand,
+    trapped: incident.trapped,
+    procedureId: incident.procedureId,
+    completedSteps: incident.completedSteps,
+  };
 
   lines.push('RESQKIT SCENE BRIEF');
   lines.push(`Incident started: ${new Date(incident.startedAt).toLocaleString()}`);
@@ -78,16 +94,23 @@ export const buildBrief = (
 
   lines.push('2. VICTIMS');
   lines.push(`   Reported count: ${incident.victimCount} (reported by bystander, not verified)`);
+  if (incident.victims.length > 1) {
+    lines.push(`   This brief covers: ${victim?.briefDescription || 'the selected victim'}`);
+    lines.push('   Other victims on this scene:');
+    incident.victims
+      .filter((v) => v.id !== victim?.id)
+      .forEach((v) => {
+        lines.push(`   - ${v.briefDescription || 'No description given'} (${v.status.replace('_', ' ')})`);
+      });
+  }
   lines.push('');
 
-  lines.push('3. PRIMARY VICTIM STATUS');
-  lines.push(`   Responsive: ${yesNoUnsure(incident.responsive)}`);
-  lines.push(`   Breathing normally: ${yesNoUnsure(incident.breathing)}`);
-  lines.push(
-    `   Injury: ${incident.injury ? label(incident.injury, INJURY_OPTIONS) : 'Not recorded'}`,
-  );
-  if (incident.ageBand) lines.push(`   Approximate age: ${incident.ageBand}`);
-  if (incident.trapped) lines.push(`   Access: ${incident.trapped}`);
+  lines.push(incident.victims.length > 1 ? "3. THIS VICTIM'S STATUS" : '3. PRIMARY VICTIM STATUS');
+  lines.push(`   Responsive: ${yesNoUnsure(vf.responsive)}`);
+  lines.push(`   Breathing normally: ${yesNoUnsure(vf.breathing)}`);
+  lines.push(`   Injury: ${vf.injury ? label(vf.injury, INJURY_OPTIONS) : 'Not recorded'}`);
+  if (vf.ageBand) lines.push(`   Approximate age: ${vf.ageBand}`);
+  if (vf.trapped) lines.push(`   Access: ${vf.trapped}`);
   lines.push('');
 
   lines.push('4. HAZARDS ON SCENE');
@@ -122,12 +145,12 @@ export const buildBrief = (
   lines.push('');
 
   lines.push('6. ACTIONS ALREADY TAKEN');
-  const proc = incident.procedureId ? procedureById(incident.procedureId) : undefined;
+  const proc = vf.procedureId ? procedureById(vf.procedureId) : undefined;
   if (proc) lines.push(`   Guidance followed: ${proc.name}`);
-  if (incident.completedSteps.length === 0) {
+  if (vf.completedSteps.length === 0) {
     lines.push('   No steps recorded as completed');
   } else {
-    incident.completedSteps.forEach((s) => {
+    vf.completedSteps.forEach((s) => {
       lines.push(`   - ${new Date(s.at).toLocaleTimeString()} — ${s.title}`);
     });
   }
