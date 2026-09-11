@@ -7,15 +7,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Send, Trash2 } from 'lucide-react-native';
-import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle, Send, Sparkles, Trash2 } from 'lucide-react-native';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { client } from '@/lib/apiClient';
 import { ChatTurn, clearChatHistory, loadChatHistory, saveChatHistory } from '@/lib/storage';
+import { useTokenColors } from '@/lib/tokenColors';
 
 export default function ChatScreen() {
   const { t } = useTranslation('chat');
+  const colors = useTokenColors();
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -64,13 +66,13 @@ export default function ChatScreen() {
           <Text className="text-xl font-bold text-foreground">{t('title')}</Text>
           {turns.length > 0 && (
             <Button variant="ghost" size="sm" onPress={clear}>
-              <Trash2 color="hsl(207 15% 40%)" size={16} />
+              <Trash2 color={colors.mutedForeground} size={16} />
             </Button>
           )}
         </View>
 
         <View className="mx-4 mb-2 flex-row items-start gap-2 rounded-md border border-emergency/40 bg-emergency/5 p-3">
-          <AlertTriangle color="hsl(356 72% 48%)" size={16} />
+          <AlertTriangle color={colors.emergency} size={16} />
           <Text className="flex-1 text-xs text-emergency">{t('disclaimer')}</Text>
         </View>
 
@@ -80,19 +82,25 @@ export default function ChatScreen() {
           keyExtractor={(_, index) => String(index)}
           contentContainerClassName="gap-2 px-4 pb-4"
           ListEmptyComponent={
-            <Card>
-              <CardContent>
-                <Text className="text-sm text-foreground">{t('greeting')}</Text>
-              </CardContent>
-            </Card>
-          }
-          renderItem={({ item }) => (
-            <View className={`max-w-[85%] rounded-lg p-3 ${item.role === 'user' ? 'self-end bg-primary' : 'self-start bg-muted'}`}>
-              <Text className={item.role === 'user' ? 'text-primary-foreground' : 'text-foreground'}>
-                {item.content}
-              </Text>
+            <View className="items-center gap-3 px-8 pt-16">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-primary-tint">
+                <Sparkles color={colors.primary} size={28} />
+              </View>
+              <Text className="text-center text-lg font-bold text-foreground">{t('title')}</Text>
+              <Text className="text-center text-sm text-muted-foreground">{t('greeting')}</Text>
             </View>
-          )}
+          }
+          renderItem={({ item }) => {
+            const isUser = item.role === 'user';
+            return (
+              <Card
+                elevated={!isUser}
+                className={`max-w-[85%] rounded-2xl border-0 p-3 ${isUser ? 'self-end bg-primary' : 'self-start bg-muted'}`}
+              >
+                <Text className={isUser ? 'text-primary-foreground' : 'text-foreground'}>{item.content}</Text>
+              </Card>
+            );
+          }}
         />
 
         {sending && (
@@ -102,17 +110,24 @@ export default function ChatScreen() {
           </View>
         )}
 
-        <View className="flex-row items-center gap-2 border-t border-border p-3">
-          <Input
-            className="flex-1"
-            value={input}
-            onChangeText={setInput}
-            placeholder={t('placeholder')}
-            onSubmitEditing={() => void send()}
-          />
-          <Button size="sm" onPress={() => void send()} disabled={!input.trim() || sending}>
-            <Send color="white" size={16} />
-          </Button>
+        <View className="px-4 pb-3 pt-1">
+          <Card elevated className="flex-row items-center gap-2 rounded-full border-0 bg-card py-1.5 pl-4 pr-1.5">
+            <Input
+              className="h-10 flex-1 border-0 bg-transparent px-0"
+              value={input}
+              onChangeText={setInput}
+              placeholder={t('placeholder')}
+              onSubmitEditing={() => void send()}
+            />
+            <Button
+              size="sm"
+              onPress={() => void send()}
+              disabled={!input.trim() || sending}
+              className="h-9 w-9 rounded-full p-0"
+            >
+              <Send color={colors.primaryForeground} size={16} />
+            </Button>
+          </Card>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

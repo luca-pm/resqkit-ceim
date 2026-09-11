@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { GraduationCap, Play } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTokenColors } from '@/lib/tokenColors';
 
 interface TutorialItem {
   id: string;
@@ -14,6 +15,7 @@ interface TutorialItem {
 
 export default function TutorialsScreen() {
   const { t } = useTranslation('tutorials');
+  const colors = useTokenColors();
   const [tab, setTab] = useState<'video' | 'text'>('video');
   const items = t('items', { returnObjects: true }) as TutorialItem[];
 
@@ -21,7 +23,7 @@ export default function TutorialsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="gap-4 pb-8">
         <View className="flex-row items-center gap-2">
-          <GraduationCap color="hsl(202 74% 42%)" size={22} />
+          <GraduationCap color={colors.primary} size={22} />
           <Text className="text-2xl font-bold text-foreground">{t('title')}</Text>
         </View>
 
@@ -39,7 +41,7 @@ export default function TutorialsScreen() {
             <CardContent className="flex-row gap-3">
               {tab === 'video' && (
                 <View className="h-16 w-16 items-center justify-center rounded-md bg-muted">
-                  <Play color="hsl(207 15% 40%)" size={20} />
+                  <Play color={colors.mutedForeground} size={20} />
                 </View>
               )}
               <View className="flex-1">

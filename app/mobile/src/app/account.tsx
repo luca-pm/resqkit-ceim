@@ -22,25 +22,30 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTokenColors } from '@/lib/tokenColors';
 
 const NavRow: React.FC<{ icon: React.ReactNode; label: string; onPress: () => void }> = ({
   icon,
   label,
   onPress,
-}) => (
-  <Button variant="ghost" onPress={onPress} className="w-full justify-between px-0">
-    <View className="flex-row items-center gap-3">
-      {icon}
-      <Text className="text-base text-foreground">{label}</Text>
-    </View>
-    <ChevronRight color="hsl(207 15% 40%)" size={18} />
-  </Button>
-);
+}) => {
+  const colors = useTokenColors();
+  return (
+    <Button variant="ghost" onPress={onPress} className="w-full justify-between px-0">
+      <View className="flex-row items-center gap-3">
+        <View className="h-9 w-9 items-center justify-center rounded-md bg-primary-tint">{icon}</View>
+        <Text className="text-base text-foreground">{label}</Text>
+      </View>
+      <ChevronRight color={colors.mutedForeground} size={18} />
+    </Button>
+  );
+};
 
 export default function AccountScreen() {
   const { t } = useTranslation('account');
   const { t: tc } = useTranslation('common');
   const { user, loading, logout } = useAuth();
+  const colors = useTokenColors();
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -62,7 +67,7 @@ export default function AccountScreen() {
               <CardContent className="gap-1">
                 <View className="mb-2 flex-row items-center gap-3">
                   <View className="h-12 w-12 items-center justify-center rounded-full bg-muted">
-                    <UserRound color="hsl(207 15% 40%)" size={22} />
+                    <UserRound color={colors.mutedForeground} size={22} />
                   </View>
                   <View>
                     <Text className="font-bold text-foreground">{user.name || user.email}</Text>
@@ -72,7 +77,7 @@ export default function AccountScreen() {
               </CardContent>
             </Card>
             <Button variant="outline" onPress={() => void logout()}>
-              <LogOut color="hsl(207 55% 14%)" size={16} />
+              <LogOut color={colors.foreground} size={16} />
               <Text className="font-medium text-foreground">{t('logOut')}</Text>
             </Button>
           </>
@@ -81,22 +86,22 @@ export default function AccountScreen() {
         <Card>
           <CardContent className="gap-1">
             <NavRow
-              icon={<SettingsIcon color="hsl(202 74% 42%)" size={18} />}
+              icon={<SettingsIcon color={colors.primary} size={18} />}
               label={tc('nav.settings')}
               onPress={() => router.push('/settings')}
             />
             <NavRow
-              icon={<GraduationCap color="hsl(202 74% 42%)" size={18} />}
+              icon={<GraduationCap color={colors.primary} size={18} />}
               label={tc('nav.tutorials')}
               onPress={() => router.push('/tutorials')}
             />
             <NavRow
-              icon={<HelpCircle color="hsl(202 74% 42%)" size={18} />}
+              icon={<HelpCircle color={colors.primary} size={18} />}
               label={tc('nav.faq')}
               onPress={() => router.push('/faq')}
             />
             <NavRow
-              icon={<Mail color="hsl(202 74% 42%)" size={18} />}
+              icon={<Mail color={colors.primary} size={18} />}
               label={tc('nav.contact')}
               onPress={() => router.push('/contact')}
             />

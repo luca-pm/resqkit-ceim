@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { HelpCircle } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion } from '@/components/ui/accordion';
+import { useTokenColors } from '@/lib/tokenColors';
 
 interface FaqItem {
   q: string;
@@ -13,13 +14,14 @@ interface FaqItem {
 
 export default function FAQScreen() {
   const { t } = useTranslation('faq');
+  const colors = useTokenColors();
   const items = t('items', { returnObjects: true }) as FaqItem[];
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="gap-4 pb-8">
         <View className="flex-row items-center gap-2">
-          <HelpCircle color="hsl(202 74% 42%)" size={22} />
+          <HelpCircle color={colors.primary} size={22} />
           <Text className="text-2xl font-bold text-foreground">{t('title')}</Text>
         </View>
         <Card>

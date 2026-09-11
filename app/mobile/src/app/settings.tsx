@@ -123,7 +123,7 @@ export default function SettingsScreen() {
         {/* ---------------- Institutional actions (Section G5) ---------------- */}
         <View>
           <SectionLabel>Institutional systems</SectionLabel>
-          <Card className={settings.realDataMode ? 'border-primary/50' : ''}>
+          <Card elevated className={settings.realDataMode ? 'border-primary/50' : ''}>
             <CardContent className="gap-3">
               <View className="flex-row items-center gap-2">
                 <RadioTower size={20} color={colors.primary} />
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
                   {[...institutionalLog].reverse().map((entry) => (
                     <View key={entry.id} className="rounded-md border border-border p-2.5">
                       <View className="flex-row flex-wrap items-center gap-1.5">
-                        <Badge variant={entry.mode === 'real' ? 'default' : 'secondary'}>
+                        <Badge variant={entry.mode === 'real' ? 'default' : 'secondary'} tone="pastel">
                           {entry.mode === 'real' ? 'LOCAL BACKEND RECEIVED' : 'SIMULATED ON DEVICE'}
                         </Badge>
                         {!entry.ok && <Badge variant="outline">failed</Badge>}

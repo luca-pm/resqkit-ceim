@@ -23,7 +23,10 @@
   --card-foreground: 207 55% 14%;
   --popover: 0 0% 100%;
   --popover-foreground: 207 55% 14%;
-  --primary: 202 74% 42%;
+  /* Primary hue nudged toward Alexandra's design reference (#0F7C90) —
+   * a slightly more teal, less blue cyan than before. Everything else in
+   * this palette is unchanged on purpose (see the revamp plan). */
+  --primary: 189 78% 32%;
   --primary-foreground: 0 0% 100%;
   --secondary: 176 55% 32%;
   --secondary-foreground: 0 0% 100%;
@@ -42,8 +45,25 @@
   --warning-foreground: 26 45% 14%;
   --border: 210 20% 85%;
   --input: 210 20% 85%;
-  --ring: 202 74% 42%;
+  --ring: 189 78% 32%;
   --radius: 2rem;
+
+  /* Pastel ("tint") pairs for Badge's optional tone="pastel" — a soft
+   * tinted background + saturated text, matching the reference design's
+   * SeverityBadge look. Each pair shares its base variant's hue so a
+   * pastel badge still reads as "the same color, softer," not a
+   * different one. Additive only — every existing Badge usage keeps its
+   * solid look until it explicitly opts into tone="pastel". */
+  --primary-tint: 189 78% 92%;
+  --primary-tint-foreground: 189 75% 24%;
+  --secondary-tint: 176 55% 92%;
+  --secondary-tint-foreground: 176 60% 22%;
+  --destructive-tint: 207 20% 90%;
+  --destructive-tint-foreground: 207 25% 25%;
+  --emergency-tint: 356 85% 95%;
+  --emergency-tint-foreground: 356 75% 32%;
+  --warning-tint: 38 90% 92%;
+  --warning-tint-foreground: 30 70% 28%;
 }
 
 /*
@@ -58,7 +78,7 @@
   --card-foreground: 210 25% 92%;
   --popover: 207 40% 12%;
   --popover-foreground: 210 25% 92%;
-  --primary: 202 80% 60%;
+  --primary: 189 65% 58%;
   --primary-foreground: 207 55% 10%;
   --secondary: 176 50% 45%;
   --secondary-foreground: 207 55% 10%;
@@ -74,5 +94,19 @@
   --warning-foreground: 26 45% 12%;
   --border: 207 25% 22%;
   --input: 207 25% 22%;
-  --ring: 202 80% 60%;
+  --ring: 189 65% 58%;
+
+  /* Dark-mode pastel pairs: a dark, muted-hue surface + a bright, more
+   * saturated text — the dark-theme equivalent of a "soft tint," since a
+   * literal near-white pastel bg would fight the dark background. */
+  --primary-tint: 189 40% 22%;
+  --primary-tint-foreground: 189 65% 78%;
+  --secondary-tint: 176 35% 20%;
+  --secondary-tint-foreground: 176 55% 75%;
+  --destructive-tint: 207 20% 22%;
+  --destructive-tint-foreground: 207 20% 80%;
+  --emergency-tint: 356 45% 22%;
+  --emergency-tint-foreground: 356 90% 82%;
+  --warning-tint: 38 45% 22%;
+  --warning-tint-foreground: 38 90% 75%;
 }

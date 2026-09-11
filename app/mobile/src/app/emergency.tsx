@@ -683,8 +683,11 @@ export default function EmergencyScreen() {
                 <Card className={cardBorderClass}>
                   <CardContent className="gap-3">
                     <View className="flex-row items-center justify-between">
-                      <Badge variant={priorityBadgeVariant}>{`#${idx + 1} priority`}</Badge>
-                      <Badge variant={done ? 'secondary' : v.status === 'in_progress' ? 'default' : 'outline'}>
+                      <Badge variant={priorityBadgeVariant} tone="pastel">{`#${idx + 1} priority`}</Badge>
+                      <Badge
+                        variant={done ? 'secondary' : v.status === 'in_progress' ? 'default' : 'outline'}
+                        tone="pastel"
+                      >
                         {done ? 'Done' : v.status === 'in_progress' ? 'In progress' : 'Not started'}
                       </Badge>
                     </View>

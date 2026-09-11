@@ -14,21 +14,20 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Home, MessageCircle, Clock, UserRound } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
+
+import { useTokenColors } from '@/lib/tokenColors';
 
 export default function AppTabs() {
   const { t } = useTranslation('common');
-  const { colorScheme } = useColorScheme();
-  const iconColor = colorScheme === 'dark' ? '#DCE6EA' : '#10293D';
-  const activeColor = colorScheme === 'dark' ? '#4FB3EA' : '#1783BC';
+  const colors = useTokenColors();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: iconColor,
-        tabBarStyle: { backgroundColor: colorScheme === 'dark' ? '#10222E' : '#FFFFFF' },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarStyle: { backgroundColor: colors.card },
       }}
     >
       <Tabs.Screen

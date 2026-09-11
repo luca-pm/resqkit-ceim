@@ -25,25 +25,35 @@ module.exports = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          tint: 'hsl(var(--primary-tint))',
+          'tint-foreground': 'hsl(var(--primary-tint-foreground))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+          tint: 'hsl(var(--secondary-tint))',
+          'tint-foreground': 'hsl(var(--secondary-tint-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+          tint: 'hsl(var(--destructive-tint))',
+          'tint-foreground': 'hsl(var(--destructive-tint-foreground))',
         },
         // The only reserved red — 112 / hazard / critical-step UI. Never used
         // for generic "delete" actions, which stay on `destructive` (neutral).
         emergency: {
           DEFAULT: 'hsl(var(--emergency))',
           foreground: 'hsl(var(--emergency-foreground))',
+          tint: 'hsl(var(--emergency-tint))',
+          'tint-foreground': 'hsl(var(--emergency-tint-foreground))',
         },
         // Second-tier urgency — never the reserved red, see global.css.
         warning: {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
+          tint: 'hsl(var(--warning-tint))',
+          'tint-foreground': 'hsl(var(--warning-tint-foreground))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

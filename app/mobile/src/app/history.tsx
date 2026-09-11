@@ -153,7 +153,7 @@ export default function HistoryScreen() {
                           </Text>
                         </View>
                         <View className="flex-row items-center gap-1.5">
-                          <Badge variant="secondary">{timeLeft(entry.expiresAt)}</Badge>
+                          <Badge variant="secondary" tone="pastel">{timeLeft(entry.expiresAt)}</Badge>
                           <ChevronRight size={16} color={colors.mutedForeground} />
                         </View>
                       </View>

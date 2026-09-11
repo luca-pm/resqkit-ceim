@@ -10,11 +10,13 @@ import { Mail, Send } from 'lucide-react-native';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useTokenColors } from '@/lib/tokenColors';
 
 const SUPPORT_EMAIL = 'support@resqkit.com';
 
 export default function ContactScreen() {
   const { t } = useTranslation('contact');
+  const colors = useTokenColors();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -32,7 +34,7 @@ export default function ContactScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="gap-4 pb-8">
         <View className="flex-row items-center gap-2">
-          <Mail color="hsl(202 74% 42%)" size={22} />
+          <Mail color={colors.primary} size={22} />
           <Text className="text-2xl font-bold text-foreground">{t('title')}</Text>
         </View>
         <Text className="text-sm text-muted-foreground">{t('subtitle')}</Text>

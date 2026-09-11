@@ -130,7 +130,7 @@ export default function HomeScreen() {
       </View>
 
       {incident && (
-        <Card className="border-primary/40">
+        <Card elevated className="border-primary/40">
           <CardContent className="flex-row items-center justify-between gap-3">
             <View className="flex-1 flex-row items-start gap-2">
               <Clock size={16} color={colors.primary} style={{ marginTop: 2 }} />
