@@ -65,7 +65,7 @@ export default defineConfig(({ command }) => {
     },
     server: {
       host: '0.0.0.0', // Listen on all network interfaces.
-      port: parseInt(process.env.VITE_PORT || '3000'),
+      port: parseInt(process.env.VITE_PORT || '5174'),
       // Vite rejects requests whose Host header isn't recognized, as a
       // DNS-rebinding guard. Quick-tunnel demo URLs (cloudflared) are random
       // *.trycloudflare.com subdomains each run, so allow the whole suffix
@@ -73,7 +73,7 @@ export default defineConfig(({ command }) => {
       allowedHosts: ['.trycloudflare.com'],
       proxy: {
         '/api': {
-          target: `http://localhost:${process.env.BACKEND_PORT || '8000'}`,
+          target: `http://localhost:${process.env.BACKEND_PORT || '8001'}`,
           changeOrigin: true,
         },
       },
