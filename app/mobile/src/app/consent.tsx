@@ -48,7 +48,7 @@ export default function ConsentScreen() {
         </Text>
       </View>
 
-      <Card className="border-emergency/40">
+      <Card elevated className="border-emergency/40">
         <CardHeader className="pb-3">
           <View className="flex-row items-center gap-2">
             <AlertTriangle size={20} color={colors.emergency} />
@@ -89,7 +89,7 @@ export default function ConsentScreen() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card elevated>
         <CardHeader className="pb-3">
           <View className="flex-row items-center gap-2">
             <Lock size={20} color={colors.primary} />

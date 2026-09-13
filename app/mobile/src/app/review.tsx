@@ -111,7 +111,7 @@ export default function ReviewScreen() {
           victim_count: incident.victimCount,
           triage_summary: `responsive=${incident.responsive || 'n/a'}; breathing=${
             incident.breathing || 'n/a'
-          }; injury=${incident.injury || 'n/a'}; age=${incident.ageBand || 'n/a'}; access=${
+          }; injury=${incident.injury.length > 0 ? incident.injury.join(', ') : 'n/a'}; age=${incident.ageBand || 'n/a'}; access=${
             incident.trapped || 'n/a'
           }`,
           hazards: incident.hazards.join(','),
@@ -166,7 +166,7 @@ export default function ReviewScreen() {
 
       {incident ? (
         <>
-          <Card>
+          <Card elevated>
             <CardHeader className="pb-3">
               <View className="flex-row items-center gap-2">
                 <ClipboardList size={20} color={colors.primary} />
@@ -178,15 +178,17 @@ export default function ReviewScreen() {
             </CardHeader>
             <CardContent className="gap-2">
               <View className="flex-row flex-wrap gap-1.5">
-                <Badge variant="secondary">{`${incident.victimCount} injured`}</Badge>
+                <Badge variant="secondary" tone="pastel">{`${incident.victimCount} injured`}</Badge>
                 {incident.hazards.length > 0 && (
-                  <Badge variant="emergency">{`${incident.hazards.length} hazard(s)`}</Badge>
+                  <Badge variant="emergency" tone="pastel">{`${incident.hazards.length} hazard(s)`}</Badge>
                 )}
                 {incident.kitItems.length > 0 && (
-                  <Badge variant="secondary">{`${incident.kitItems.length} kit item(s)`}</Badge>
+                  <Badge variant="secondary" tone="pastel">{`${incident.kitItems.length} kit item(s)`}</Badge>
                 )}
-                {procedure && <Badge>{procedure.shortLabel}</Badge>}
-                <Badge variant={incident.includeHealthData ? 'default' : 'secondary'}>
+                {procedure && (
+                  <Badge tone="pastel">{procedure.shortLabel}</Badge>
+                )}
+                <Badge variant={incident.includeHealthData ? 'default' : 'secondary'} tone="pastel">
                   {incident.includeHealthData ? 'Health data shared' : 'No health data shared'}
                 </Badge>
               </View>

@@ -4,9 +4,11 @@ import { Eye, EyeOff } from 'lucide-react-native';
 
 import { useTokenColors } from '@/lib/tokenColors';
 
+// h-14 (56px) matches the reference design's uniform input/button height —
+// bigger tap target, easier to hit under stress than the previous h-11.
 export const Input: React.FC<TextInputProps> = ({ className = '', ...props }) => (
   <TextInput
-    className={`h-11 rounded-md border border-input bg-background px-3 text-foreground placeholder:text-muted-foreground ${className}`}
+    className={`h-14 rounded-md border border-input bg-background px-4 text-base text-foreground placeholder:text-muted-foreground ${className}`}
     {...props}
   />
 );
@@ -28,7 +30,7 @@ export const PasswordInput: React.FC<TextInputProps> = ({ className = '', ...pro
         secureTextEntry={!visible}
         autoCapitalize="none"
         autoCorrect={false}
-        className={`h-11 rounded-md border border-input bg-background pl-3 pr-11 text-foreground placeholder:text-muted-foreground ${className}`}
+        className={`h-14 rounded-md border border-input bg-background pl-4 pr-12 text-base text-foreground placeholder:text-muted-foreground ${className}`}
         {...props}
       />
       <Pressable
@@ -36,7 +38,7 @@ export const PasswordInput: React.FC<TextInputProps> = ({ className = '', ...pro
         accessibilityRole="button"
         accessibilityLabel={visible ? 'Hide password' : 'Show password'}
         hitSlop={8}
-        className="absolute right-0 h-11 w-11 items-center justify-center"
+        className="absolute right-0 h-14 w-14 items-center justify-center"
       >
         {visible ? (
           <EyeOff size={18} color={colors.mutedForeground} />

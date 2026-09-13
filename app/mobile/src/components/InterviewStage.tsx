@@ -157,14 +157,14 @@ const InterviewStage: React.FC<InterviewStageProps> = ({
           <MessageCircleQuestion size={16} color={colors.primary} />
           <Text className="text-sm font-semibold text-foreground">A few quick questions</Text>
         </View>
-        <Badge variant="secondary">{`${index + 1} / ${INTERVIEW_PROMPTS.length}`}</Badge>
+        <Badge variant="secondary" tone="pastel">{`${index + 1} / ${INTERVIEW_PROMPTS.length}`}</Badge>
       </View>
       <Text className="text-xs text-muted-foreground">
         Build a detailed, shareable scene report — in your own words. Skip any you can&apos;t answer. This
         stays on your phone until you choose to share it.
       </Text>
 
-      <Card>
+      <Card elevated>
         <CardContent className="gap-3">
           <View className="flex-row items-start justify-between gap-2">
             <Text className="flex-1 text-base font-medium text-foreground">{prompt.prompt}</Text>

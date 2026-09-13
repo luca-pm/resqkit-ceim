@@ -1,39 +1,65 @@
-import { Image } from 'expo-image';
+/**
+ * The splash shown while the native Expo splash screen hands off to the app
+ * (see `app.json`'s `expo-splash-screen` plugin config for the native frame
+ * this must match exactly on first paint, so `hideAsync()` never produces a
+ * visible jump). Bold brand treatment, decided in the visual-revamp plan:
+ * full-bleed primary teal, a white circular badge holding the brand mark
+ * (the same `LifeBuoy` icon used in `AppShell`'s header, inverted here —
+ * teal-on-white instead of white-on-teal), a large wordmark, and a
+ * translucent tagline pulled from the same `common.app.tagline` string used
+ * elsewhere so it never drifts out of sync.
+ */
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { LifeBuoy } from 'lucide-react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+/** Matches `--primary` (light) in global.css / tokenColors.ts and
+ * `app.json`'s splash `backgroundColor` exactly — kept a literal, not the
+ * theme-aware `useTokenColors()` hook, so this earliest-mounted screen never
+ * depends on the color-scheme provider being ready yet, and so it reads as
+ * one deliberate brand statement rather than following the OS theme. */
+const TEAL = '#127E91';
+const DURATION = 1100;
+
+const splashKeyframe = new Keyframe({
+  0: {
+    transform: [{ scale: 1 }],
+    opacity: 1,
+  },
+  20: {
+    opacity: 1,
+  },
+  70: {
+    opacity: 0,
+    easing: Easing.elastic(0.7),
+  },
+  100: {
+    opacity: 0,
+    transform: [{ scale: 1 }],
+    easing: Easing.elastic(0.7),
+  },
+});
 
 export function AnimatedSplashOverlay() {
+  const { t } = useTranslation('common');
   const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
 
-  const splashKeyframe = new Keyframe({
-    0: {
-      transform: [{ scale: 1 }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
-    },
-    100: {
-      opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
-    },
-  });
-
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const content = (
+    <View style={styles.content}>
+      <View style={styles.badge}>
+        <LifeBuoy size={44} color={TEAL} />
+      </View>
+      <Text style={styles.wordmark}>{t('app.name')}</Text>
+      <Text style={styles.tagline}>{t('app.tagline')}</Text>
+    </View>
+  );
 
   return animate ? (
     <Animated.View
@@ -44,7 +70,7 @@ export function AnimatedSplashOverlay() {
         }
       })}
       style={styles.splashOverlay}>
-      {image}
+      {content}
     </Animated.View>
   ) : (
     <View
@@ -53,96 +79,41 @@ export function AnimatedSplashOverlay() {
           setAnimate(true);
         });
       }}
-      style={styles.splashOverlay}>
-      {image}
-    </View>
-  );
-}
-
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const logoKeyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-  },
-  40: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '0deg' }],
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
-  },
-});
-
-export function AnimatedIcon() {
-  return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
-
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
-      </Animated.View>
-    </View>
+      style={styles.splashOverlay}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 128,
-    height: 128,
-    zIndex: 100,
-  },
-  image: {
-    width: 76,
-    height: 71,
-  },
-  background: {
-    borderRadius: 40,
-    experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
-    width: 128,
-    height: 128,
-    position: 'absolute',
-  },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+  },
+  content: {
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 32,
+  },
+  badge: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wordmark: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  tagline: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.78)',
+    textAlign: 'center',
   },
 });

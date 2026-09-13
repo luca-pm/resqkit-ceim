@@ -13,6 +13,7 @@
  * overwrites those two fields, under any circumstance — they are what
  * routes routeProcedure() to CPR.
  */
+import { primaryInjury } from './knowledge';
 import { IncidentState } from './storage';
 
 export const CEIM_SCHEMA_VERSION = '0.1.0';
@@ -126,12 +127,17 @@ export function buildKnownFactsFromIncident(incident: IncidentState): KnownFacts
     victim_count: incident.victimCount,
     responsive: incident.responsive || null,
     breathing: incident.breathing || null,
-    injury: incident.injury || null,
+    // The backend's known_facts.injury is still a single value (unchanged
+    // contract) — injury itself is multi-select on-device now, so this
+    // sends the single most urgent one (same value routeProcedure() acts
+    // on), not the full list.
+    injury: primaryInjury(incident.injury) ?? null,
     age_band: incident.ageBand || null,
     trapped: incident.trapped || null,
-    // Empty on the interview's first pass (that stage runs before these are
-    // captured); populated once the wizard reaches hazards/kit, so a later
-    // "Regenerate report" call picks them up automatically.
+    // The interview now runs after hazards/kit (it's offered as an optional
+    // action from the guide screen, not a forced step before it — see
+    // emergency.tsx's afterTriage()), so these are already populated by the
+    // time this is first called, not just on a later "Regenerate report".
     hazards: incident.hazards,
     kit_items: incident.kitItems,
   };

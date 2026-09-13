@@ -206,7 +206,7 @@ export default function KitsScreen() {
           )}
 
           {formOpen && (
-            <Card>
+            <Card elevated>
               <CardContent className="gap-4">
                 <Text className="font-semibold text-foreground">
                   {editingId !== null ? 'Edit kit' : 'New kit'}
@@ -338,9 +338,9 @@ export default function KitsScreen() {
                     </View>
 
                     <View className="flex-row flex-wrap gap-1.5">
-                      <Badge variant="secondary">{`${contents.length} present`}</Badge>
+                      <Badge variant="secondary" tone="pastel">{`${contents.length} present`}</Badge>
                       {missing.length > 0 && (
-                        <Badge variant="destructive">{`${missing.length} missing`}</Badge>
+                        <Badge variant="destructive" tone="pastel">{`${missing.length} missing`}</Badge>
                       )}
                     </View>
 

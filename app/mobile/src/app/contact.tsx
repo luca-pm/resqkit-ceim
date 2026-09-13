@@ -47,7 +47,7 @@ export default function ContactScreen() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card elevated>
           <CardContent className="gap-3">
             <Text className="font-semibold text-foreground">{t('formTitle')}</Text>
             <Input value={name} onChangeText={setName} placeholder={t('namePlaceholder')} />

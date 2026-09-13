@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
 import { useIncident } from '@/contexts/IncidentContext';
 import { client } from '@/lib/apiClient';
-import { buildBrief } from '@/lib/brief';
+import { buildBrief, victimLabel } from '@/lib/brief';
 import { buildNgProtocolPayload, terminateInstitutionalSession } from '@/lib/institutionalActions';
 import { RESPONDER_PRIORITIES, rankVictims } from '@/lib/knowledge';
 import { RetentionChoice, VictimRecord, profileHasHealthData } from '@/lib/storage';
@@ -293,9 +293,9 @@ export default function HandoffScreen() {
                       <Text
                         className={`flex-1 text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
                       >
-                        {`#${idx + 1} — ${v.briefDescription || 'No description given'}`}
+                        {`#${idx + 1} — ${victimLabel(incident.victims, v)}`}
                       </Text>
-                      <Badge variant={v.status === 'done' ? 'secondary' : 'outline'}>
+                      <Badge variant={v.status === 'done' ? 'secondary' : 'outline'} tone="pastel">
                         {v.status.replace('_', ' ')}
                       </Badge>
                     </View>
@@ -307,11 +307,11 @@ export default function HandoffScreen() {
         </Card>
       )}
 
-      <Card>
+      <Card elevated>
         <CardContent className="gap-3">
           <View className="flex-row items-center justify-between gap-2">
             <Text className="font-semibold text-foreground">Scene brief</Text>
-            <Badge variant="secondary">Composed on this device</Badge>
+            <Badge variant="secondary" tone="pastel">Composed on this device</Badge>
           </View>
           <View className="rounded-md bg-muted p-3">
             <Text className="font-mono text-xs leading-relaxed text-foreground">{brief}</Text>
@@ -342,7 +342,7 @@ export default function HandoffScreen() {
                 facts.
               </Text>
               <View className="mt-1.5 flex-row items-center gap-1.5">
-                <Badge variant="secondary">Open-source AI</Badge>
+                <Badge variant="secondary" tone="pastel">Open-source AI</Badge>
                 <Text className="flex-1 text-xs text-muted-foreground">
                   Rewritten by a model self-hosted on the server.
                 </Text>

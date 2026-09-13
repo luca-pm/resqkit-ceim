@@ -20,6 +20,20 @@ import { IncidentState, SafetyProfile, VictimRecord } from './storage';
 const label = (value: string, options: { value: string; label: string }[]) =>
   options.find((o) => o.value === value)?.label ?? value;
 
+const labelList = (values: string[], options: { value: string; label: string }[]) =>
+  values.map((v) => label(v, options)).join(', ');
+
+/** Stable per-victim identifier for display when no name/identifier was
+ * given. Based on the order the victim was added (`incident.victims`
+ * array position), not the urgency rank — rank reorders live as answers
+ * change (the victim-list "glide" animation), so "Victim 1" would point
+ * at a different person from one moment to the next if it were rank-based. */
+export const victimLabel = (victims: VictimRecord[], victim: VictimRecord): string => {
+  if (victim.briefDescription.trim()) return victim.briefDescription;
+  const stableIndex = victims.findIndex((v) => v.id === victim.id);
+  return `Victim ${stableIndex >= 0 ? stableIndex + 1 : '?'}`;
+};
+
 const yesNoUnsure = (v: string) => {
   if (v === 'yes') return 'Yes';
   if (v === 'no') return 'No';
@@ -95,12 +109,12 @@ export const buildBrief = (
   lines.push('2. VICTIMS');
   lines.push(`   Reported count: ${incident.victimCount} (reported by bystander, not verified)`);
   if (incident.victims.length > 1) {
-    lines.push(`   This brief covers: ${victim?.briefDescription || 'the selected victim'}`);
+    lines.push(`   This brief covers: ${victim ? victimLabel(incident.victims, victim) : 'the selected victim'}`);
     lines.push('   Other victims on this scene:');
     incident.victims
       .filter((v) => v.id !== victim?.id)
       .forEach((v) => {
-        lines.push(`   - ${v.briefDescription || 'No description given'} (${v.status.replace('_', ' ')})`);
+        lines.push(`   - ${victimLabel(incident.victims, v)} (${v.status.replace('_', ' ')})`);
       });
   }
   lines.push('');
@@ -108,7 +122,7 @@ export const buildBrief = (
   lines.push(incident.victims.length > 1 ? "3. THIS VICTIM'S STATUS" : '3. PRIMARY VICTIM STATUS');
   lines.push(`   Responsive: ${yesNoUnsure(vf.responsive)}`);
   lines.push(`   Breathing normally: ${yesNoUnsure(vf.breathing)}`);
-  lines.push(`   Injury: ${vf.injury ? label(vf.injury, INJURY_OPTIONS) : 'Not recorded'}`);
+  lines.push(`   Injury: ${vf.injury.length > 0 ? labelList(vf.injury, INJURY_OPTIONS) : 'Not recorded'}`);
   if (vf.ageBand) lines.push(`   Approximate age: ${vf.ageBand}`);
   if (vf.trapped) lines.push(`   Access: ${vf.trapped}`);
   lines.push('');
@@ -198,8 +212,8 @@ export const buildDispatcherScript = (incident: IncidentState): string => {
   }
   if (incident.locationNote) lines.push(`"Landmark: ${incident.locationNote}."`);
   lines.push(`"There ${incident.victimCount === 1 ? 'is 1 injured person' : `are ${incident.victimCount} injured people`}."`);
-  if (incident.injury) {
-    lines.push(`"The main problem is ${label(incident.injury, INJURY_OPTIONS).toLowerCase()}."`);
+  if (incident.injury.length > 0) {
+    lines.push(`"The main problems are ${labelList(incident.injury, INJURY_OPTIONS).toLowerCase()}."`);
   }
   if (incident.breathing === 'no') {
     lines.push('"The person is NOT breathing." — say this first, it changes their response.');

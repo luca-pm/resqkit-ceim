@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { GraduationCap, Play } from 'lucide-react-native';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTokenColors } from '@/lib/tokenColors';
@@ -48,9 +49,9 @@ export default function TutorialsScreen() {
                 <Text className="font-semibold text-foreground">{item.title}</Text>
                 <Text className="mt-1 text-sm text-muted-foreground">{item.description}</Text>
                 {tab === 'video' && (
-                  <Text className="mt-2 self-start rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+                  <Badge variant="secondary" tone="pastel" className="mt-2">
                     {t('videoComingSoon')}
-                  </Text>
+                  </Badge>
                 )}
               </View>
             </CardContent>

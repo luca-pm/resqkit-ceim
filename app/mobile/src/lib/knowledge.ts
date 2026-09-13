@@ -546,9 +546,9 @@ export const PROCEDURES: Procedure[] = [
         critical: true,
       },
       {
-        title: 'Give up to 5 abdominal thrusts',
+        title: 'Give up to 5 abdominal thrusts (the Heimlich manoeuvre)',
         detail:
-          'Stand behind them, make a fist just above the navel, grasp it with your other hand and pull sharply inwards and upwards.',
+          'Stand behind them, make a fist with your thumb tucked in — so it forms a "J" shape — and place it just above the navel. Grasp it with your other hand and pull sharply inwards and upwards.',
         critical: true,
       },
       {
@@ -707,18 +707,41 @@ export const procedureById = (id: string): Procedure | undefined =>
   PROCEDURES.find((p) => p.id === id);
 
 /**
+ * A bystander can see several problems on the same victim at once (a burn
+ * and heavy bleeding, say) — the triage question is multi-select — but the
+ * guided procedure can only walk through one at a time. This is the fixed
+ * priority order used to pick which one: standard first-aid triage logic
+ * (what can kill in minutes goes first — airway obstruction and catastrophic
+ * bleeding — then what suggests a cardiac/respiratory emergency, then the
+ * rest). Deterministic, same guarantee as routeProcedure() itself: no model
+ * is ever involved in picking it.
+ */
+const INJURY_PRIORITY = ['choking', 'bleeding', 'chest', 'head_spine', 'burn', 'fracture', 'cold'];
+
+/** Picks the single most urgent entry from a multi-select injury list. Falls
+ * back to whatever was selected first if none match the known priority
+ * list (e.g. 'unknown'). */
+export const primaryInjury = (injuries?: string[]): string | undefined => {
+  if (!injuries || injuries.length === 0) return undefined;
+  for (const code of INJURY_PRIORITY) {
+    if (injuries.includes(code)) return code;
+  }
+  return injuries[0];
+};
+
+/**
  * Deterministic procedure routing from triage answers.
  * No model is involved in this decision.
  */
 export const routeProcedure = (triage: {
   responsive?: string;
   breathing?: string;
-  injury?: string;
+  injury?: string[];
 }): string => {
   if (triage.breathing === 'no' || (triage.responsive === 'no' && triage.breathing !== 'yes')) {
     return 'cpr_aed';
   }
-  switch (triage.injury) {
+  switch (primaryInjury(triage.injury)) {
     case 'bleeding':
       return 'severe_bleeding';
     case 'choking':
@@ -737,17 +760,34 @@ export const routeProcedure = (triage: {
 /**
  * Deterministic urgency ranking across victims in a multi-victim incident.
  * Same guarantee as routeProcedure(): no model is ever involved. Lower
- * number = more urgent = higher up the victim list.
+ * number = more urgent = higher up the victim list. Choking is included
+ * alongside bleeding at this tier since it's equally life-threatening in
+ * minutes — same reasoning as INJURY_PRIORITY above.
  */
-export const victimUrgencyRank = (v: { responsive?: string; breathing?: string; injury?: string }): number => {
+export const victimUrgencyRank = (v: {
+  responsive?: string;
+  breathing?: string;
+  injury?: string[];
+  chokingFlag?: string;
+  bleedingFlag?: string;
+}): number => {
   if (v.breathing === 'no') return 0;
   if (v.responsive === 'no') return 1;
-  if (v.injury === 'bleeding') return 2;
+  if (
+    v.chokingFlag === 'yes' ||
+    v.bleedingFlag === 'yes' ||
+    v.injury?.includes('bleeding') ||
+    v.injury?.includes('choking')
+  ) {
+    return 2;
+  }
   return 3;
 };
 
 /** Sorts victims most-urgent-first; ties keep their original (add) order. */
-export const rankVictims = <T extends { responsive?: string; breathing?: string; injury?: string }>(
+export const rankVictims = <
+  T extends { responsive?: string; breathing?: string; injury?: string[]; chokingFlag?: string; bleedingFlag?: string },
+>(
   victims: T[],
 ): T[] =>
   victims

@@ -219,7 +219,7 @@ export default function IncidentDetailScreen() {
             ) : (
               <Archive size={16} color={colors.secondary} />
             )}
-            <Badge variant="secondary">
+            <Badge variant="secondary" tone="pastel">
               {source === 'local' ? 'On this device' : 'Archived to your account'}
             </Badge>
           </View>
@@ -228,7 +228,7 @@ export default function IncidentDetailScreen() {
           </Text>
           {ctxLabel && <Text className="mt-0.5 text-sm text-muted-foreground">{ctxLabel}</Text>}
           <View className="mt-2 flex-row flex-wrap gap-1.5">
-            <Badge variant="secondary">
+            <Badge variant="secondary" tone="pastel">
               {(incident?.victimCount ?? serverRecord?.victim_count ?? 1) + ' injured'}
             </Badge>
             <Badge
@@ -237,12 +237,13 @@ export default function IncidentDetailScreen() {
                   ? 'emergency'
                   : 'secondary'
               }
+              tone="pastel"
             >
               {CALLED_112_LABELS[incident?.called112 ?? serverRecord?.called_112 ?? ''] ??
                 'Not recorded'}
             </Badge>
             {(incident?.includeHealthData ?? serverRecord?.includes_health_data) && (
-              <Badge>Health data shared</Badge>
+              <Badge tone="pastel">Health data shared</Badge>
             )}
           </View>
         </View>
@@ -266,7 +267,11 @@ export default function IncidentDetailScreen() {
             <Field label="Breathing" value={yesNoUnsure(incident.breathing)} />
             <Field
               label="Main problem"
-              value={INJURY_OPTIONS.find((o) => o.value === incident.injury)?.label}
+              value={
+                incident.injury.length > 0
+                  ? incident.injury.map((v) => INJURY_OPTIONS.find((o) => o.value === v)?.label ?? v).join(', ')
+                  : undefined
+              }
             />
             <Field
               label="Approximate age"
@@ -318,7 +323,7 @@ export default function IncidentDetailScreen() {
             <View className="flex-row flex-wrap gap-1.5">
               {(incident?.hazards ?? serverRecord?.hazards?.split(',').filter(Boolean) ?? []).map(
                 (code) => (
-                  <Badge key={code} variant="emergency">
+                  <Badge key={code} variant="emergency" tone="pastel">
                     {hazardByCode(code)?.label ?? code}
                   </Badge>
                 ),
@@ -336,7 +341,7 @@ export default function IncidentDetailScreen() {
                 serverRecord?.kit_items?.split(',').filter(Boolean) ??
                 []
               ).map((code) => (
-                <Badge key={code} variant="secondary">
+                <Badge key={code} variant="secondary" tone="pastel">
                   {kitItemByCode(code)?.name ?? code}
                 </Badge>
               ))}

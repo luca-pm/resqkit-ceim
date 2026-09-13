@@ -26,6 +26,7 @@ import {
   Phone,
   Radio,
   ShieldAlert,
+  Sparkles,
   Users,
   Volume2,
 } from 'lucide-react-native';
@@ -33,7 +34,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
 import { callEmergencyServices } from '@/components/AppShell';
@@ -45,7 +45,6 @@ import { buildDispatcherScript, formatCoords } from '@/lib/brief';
 import {
   connectNg112,
   ensureSession,
-  logHazards,
   logKitSelection,
   logProcedureStep,
   logTriageAnswer,
@@ -54,7 +53,6 @@ import {
 import {
   CONTEXTS,
   INJURY_OPTIONS,
-  hazardsForContext,
   procedureById,
   rankVictims,
   routeProcedure,
@@ -126,7 +124,7 @@ const ChipSelect: React.FC<{
   </View>
 );
 
-const TRIAGE_STEP_COUNT = 6;
+const TRIAGE_STEP_COUNT = 3;
 
 /** One question per screen for the triage wizard — module-scoped so its
  * identity is stable across renders (React Compiler flags a component type
@@ -227,7 +225,6 @@ export default function EmergencyScreen() {
     ready,
     consent,
     incident,
-    startIncident,
     updateIncident,
     settings,
     updateSettings,
@@ -247,23 +244,29 @@ export default function EmergencyScreen() {
   const [locating, setLocating] = useState(false);
   const [testingVoiceChannel, setTestingVoiceChannel] = useState(false);
 
-  /**
-   * Draft text for the victim-count field, so it can be *emptied* while typing.
-   *
-   * Binding the input straight to the stored number made it impossible to
-   * retype: clearing "1" produced an empty string, parseInt('') is NaN, and the
-   * `|| 1` fallback wrote 1 straight back before the next keystroke landed — so
-   * typing 2 appended onto the restored 1 and gave 12.
-   *
-   * null means "not editing, show the stored value". A non-null draft (empty
-   * string included) is what the user is currently typing, and is only written
-   * back to the incident once it parses to a sane count.
-   */
-  const [victimDraft, setVictimDraft] = useState<string | null>(null);
-
   // Triage is a sequential, one-question-per-screen wizard: 0 responsive,
-  // 1 breathing, 2 injury, 3 victim count, 4 age band, 5 trapped. Tapping an
-  // answer both records it and advances; a Back link and a "Don't know"
+  // 1 breathing, 2 injury (multi-select). There's no separate "how many
+  // injured people" question anymore — incident.victims (the real,
+  // editable list) is the source of truth for that count, kept in sync
+  // automatically wherever the list changes.
+  //
+  // No "can you reach them?" question either — see the hazards stage
+  // below, which replaced both that and the hazard checklist with one
+  // plain-language safety reminder. TRAPPED_OPTIONS (still exported below,
+  // used by incident-detail.tsx) and the trapped field are left in place,
+  // unused for now — same reasoning as ageBand.
+  //
+  // No age-band question either, for now — routeProcedure() and every
+  // PROCEDURES entry are age-agnostic today, so asking it bought nothing
+  // and just delayed reaching the guide. AGE_BANDS/AGE_LABELS (still
+  // exported below, used by incident-detail.tsx) and IncidentState/
+  // VictimRecord's ageBand field are deliberately left in place, not
+  // removed: bring this question back the day any procedure actually
+  // branches on age (e.g. infant CPR is two fingers, not two hands;
+  // infant recovery position differs from an adult's) — at that point it
+  // stops being pure reporting metadata and becomes safety-relevant again.
+  //
+  // Tapping an answer both records it and advances; a Back link and a "Don't know"
   // shortcut are offered on every screen. This is separate from `stage`
   // because triage is one stage but many small screens within it.
   const [triageStep, setTriageStep] = useState(0);
@@ -271,14 +274,25 @@ export default function EmergencyScreen() {
   const onSession = (id: string, code: string | null) =>
     updateIncident({ backendSessionId: id, sessionCode: code });
 
+  // NOT "if (!incident) startIncident()" here — this screen is a hidden tab
+  // in app-tabs.tsx's Tabs navigator, so it stays MOUNTED in the background
+  // even while the user is on a different tab (React Navigation doesn't
+  // unmount inactive tab screens by default). Every real way to reach this
+  // screen (index.tsx's beginIncident/"Continue", consent.tsx's redirect
+  // flow) already guarantees an incident exists first — so an auto-create
+  // fallback here doesn't protect anything real, it just means the instant
+  // closeIncident() clears the active incident from anywhere else in the
+  // app, this backgrounded effect fires and silently recreates a fresh one,
+  // making "End incident" look like it does nothing without a full app
+  // restart. The `!ready || !incident` loading guard in the render below is
+  // the correct failure mode if this screen is ever somehow reached with no
+  // incident — visible and inert, not a silent resurrection.
   useEffect(() => {
     if (!ready) return;
     if (!consent.disclaimerAcknowledged) {
       router.replace({ pathname: '/consent', params: { next: '/emergency' } });
-      return;
     }
-    if (!incident) startIncident();
-  }, [ready, consent.disclaimerAcknowledged, incident, startIncident, router]);
+  }, [ready, consent.disclaimerAcknowledged, router]);
 
   // Every incident needs at least one victim record to hang the triage/guide
   // flow off of — seed it once, right after the incident itself is created,
@@ -286,7 +300,7 @@ export default function EmergencyScreen() {
   useEffect(() => {
     if (incident && incident.victims.length === 0) {
       const v = newVictim();
-      updateIncident({ victims: [v], activeVictimId: v.id });
+      updateIncident({ victims: [v], activeVictimId: v.id, victimCount: 1 });
     }
   }, [incident, updateIncident]);
 
@@ -333,7 +347,12 @@ export default function EmergencyScreen() {
     );
   }
 
-  const addVictim = () => updateIncident({ victims: [...incident.victims, newVictim()] });
+  const addVictim = () => {
+    const next = [...incident.victims, newVictim()];
+    // victimCount is derived from the real list now — no separate question
+    // asks for it anymore, so it has to stay in sync here instead.
+    updateIncident({ victims: next, victimCount: next.length });
+  };
 
   const updateVictimBrief = (id: string, patch: Partial<VictimRecord>) =>
     updateIncident({ victims: incident.victims.map((v) => (v.id === id ? { ...v, ...patch } : v)) });
@@ -343,11 +362,19 @@ export default function EmergencyScreen() {
   const selectVictim = (id: string) => {
     const v = incident.victims.find((vv) => vv.id === id);
     if (!v) return;
+    // The full injury multi-select answer (if this victim has already been
+    // through triage once) always wins; otherwise seed it from whichever
+    // quick brief-card flags were marked "yes", so the triage screen opens
+    // with those already checked instead of blank.
+    const seededInjury =
+      v.injury.length > 0
+        ? v.injury
+        : [...(v.chokingFlag === 'yes' ? ['choking'] : []), ...(v.bleedingFlag === 'yes' ? ['bleeding'] : [])];
     updateIncident({
       activeVictimId: id,
       responsive: v.responsive,
       breathing: v.breathing,
-      injury: v.injury,
+      injury: seededInjury,
       ageBand: v.ageBand,
       trapped: v.trapped,
       procedureId: v.procedureId,
@@ -356,7 +383,16 @@ export default function EmergencyScreen() {
         vv.id === id && vv.status === 'pending' ? { ...vv, status: 'in_progress' } : vv,
       ),
     });
-    setTriageStep(0);
+    // Don't re-ask what the brief-description card already answered — those
+    // same two questions (responsive/breathing) are what the urgency
+    // ranking is built from. Skip step 0 if responsive is already set, and
+    // step 1 too if breathing is already set; a truly unanswered field
+    // ('' — never touched, not even "not sure") still gets asked, since
+    // routeProcedure() needs a real value for it.
+    let startStep = 0;
+    if (v.responsive !== '') startStep = 1;
+    if (v.responsive !== '' && v.breathing !== '') startStep = 2;
+    setTriageStep(startStep);
     setStage('triage');
   };
 
@@ -385,16 +421,20 @@ export default function EmergencyScreen() {
     });
   };
 
-  /** After the last triage question: the scene-wide interview/hazards/kit
-   * stages only ever run once per incident (for the first victim) — every
-   * later victim already has that context, so their triage goes straight to
-   * guidance instead of re-asking scene-level questions. */
+  /** After the last triage question: the scene-wide hazards/kit stages only
+   * ever run once per incident (for the first victim) — every later victim
+   * already has that context, so their triage goes straight to guidance
+   * instead of re-asking scene-level questions. The AI interview (building
+   * the CEIM report for responders) is NOT in this critical path at all
+   * any more — it's paperwork for the handoff, not first aid, so it must
+   * never delay reaching the actual guided procedure. It's offered as an
+   * optional action from the guide screen once care is already underway. */
   const afterTriage = () => {
     if (incident.sceneContextDone) {
       updateIncident({ procedureId: routeProcedure(incident) });
       setStage('guide');
     } else {
-      setStage('interview');
+      setStage('hazards');
     }
   };
 
@@ -696,7 +736,7 @@ export default function EmergencyScreen() {
                       onChangeText={(text) => updateVictimBrief(v.id, { briefDescription: text })}
                       editable={!done}
                       multiline
-                      placeholder="Brief description — age, what happened, what you see"
+                      placeholder='Name, or a quick identifier — e.g. "the driver", "child in the back seat"'
                       placeholderTextColor={colors.mutedForeground}
                       className="min-h-[60px] rounded-md border border-input bg-background p-3 text-sm text-foreground"
                       textAlignVertical="top"
@@ -717,6 +757,22 @@ export default function EmergencyScreen() {
                             options={yesNoUnsure}
                             value={v.responsive}
                             onChange={(val) => updateVictimBrief(v.id, { responsive: val })}
+                          />
+                        </View>
+                        <View className="gap-1">
+                          <Label>Choking or can&apos;t breathe?</Label>
+                          <ChipSelect
+                            options={yesNoUnsure}
+                            value={v.chokingFlag}
+                            onChange={(val) => updateVictimBrief(v.id, { chokingFlag: val })}
+                          />
+                        </View>
+                        <View className="gap-1">
+                          <Label>Severe bleeding?</Label>
+                          <ChipSelect
+                            options={yesNoUnsure}
+                            value={v.bleedingFlag}
+                            onChange={(val) => updateVictimBrief(v.id, { bleedingFlag: val })}
                           />
                         </View>
                       </>
@@ -850,141 +906,62 @@ export default function EmergencyScreen() {
       );
     }
 
-    /* ---- Step 2: main injury ---- */
+    /* ---- Step 2: main injury (multi-select — a bystander can see more
+     * than one problem at once; lib/knowledge.ts's primaryInjury() picks
+     * which single procedure to guide on first) ---- */
     if (triageStep === 2) {
+      const toggleInjury = (value: string) => {
+        if (value === 'unknown') {
+          updateIncident({ injury: incident.injury.includes('unknown') ? [] : ['unknown'] });
+          return;
+        }
+        const withoutUnknown = incident.injury.filter((c) => c !== 'unknown');
+        const next = withoutUnknown.includes(value)
+          ? withoutUnknown.filter((c) => c !== value)
+          : [...withoutUnknown, value];
+        updateIncident({ injury: next });
+      };
+
       return (
         <TriageStepShell step={triageStep}
-          title="Main visible problem"
+          title="What do you see?"
+          subtitle="Pick everything that applies — there can be more than one."
           onBack={() => setTriageStep(1)}
           onSkip={() => {
-            updateIncident({ injury: 'unknown' });
-            setTriageStep(3);
+            updateIncident({ injury: ['unknown'] });
+            afterTriage();
           }}
         >
           <Card>
             <CardContent className="gap-2">
-              {INJURY_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => {
-                    updateIncident({ injury: opt.value });
-                    setTriageStep(3);
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: incident.injury === opt.value }}
-                  className={`rounded-md border p-2.5 ${
-                    incident.injury === opt.value ? 'border-primary bg-primary/10' : 'border-border bg-card'
-                  }`}
-                >
-                  <Text
-                    className={`text-sm ${
-                      incident.injury === opt.value ? 'font-medium text-foreground' : 'text-muted-foreground'
+              {INJURY_OPTIONS.map((opt) => {
+                const checked = incident.injury.includes(opt.value);
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => toggleInjury(opt.value)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                    className={`flex-row items-center justify-between rounded-md border p-2.5 ${
+                      checked ? 'border-primary bg-primary/10' : 'border-border bg-card'
                     }`}
                   >
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text className={`text-sm ${checked ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                      {opt.label}
+                    </Text>
+                    {checked && <Check size={18} color={colors.primary} />}
+                  </Pressable>
+                );
+              })}
             </CardContent>
           </Card>
+          <Button size="lg" disabled={incident.injury.length === 0} onPress={afterTriage}>
+            <Text className="text-base font-medium text-primary-foreground">Next</Text>
+            <ChevronRight size={20} color={colors.primaryForeground} />
+          </Button>
         </TriageStepShell>
       );
     }
-
-    /* ---- Step 3: victim count ---- */
-    if (triageStep === 3) {
-      return (
-        <TriageStepShell step={triageStep} title="How many injured people" onBack={() => setTriageStep(2)} onSkip={() => setTriageStep(4)}>
-          <Card>
-            <CardContent className="gap-1.5">
-              <View className="flex-row items-center gap-1.5">
-                <Users size={16} color={colors.foreground} />
-                <Label>Count</Label>
-              </View>
-              <Input
-                keyboardType="number-pad"
-                value={victimDraft ?? String(incident.victimCount)}
-                onChangeText={(text) => {
-                  // The number-pad still offers "." "-" and "," on Android, and
-                  // a count of "1.2" helps nobody — keep digits only. Capped at
-                  // 2 digits to match the web field's max={99}.
-                  const digits = text.replace(/[^0-9]/g, '').slice(0, 2);
-                  setVictimDraft(digits);
-                  const parsed = parseInt(digits, 10);
-                  if (parsed >= 1) updateIncident({ victimCount: parsed });
-                }}
-                // Leaving the field empty must not persist an empty count:
-                // dropping the draft falls back to the last committed value.
-                onBlur={() => setVictimDraft(null)}
-              />
-              <Button
-                className="mt-2"
-                size="lg"
-                onPress={() => {
-                  setVictimDraft(null);
-                  setTriageStep(4);
-                }}
-              >
-                <Text className="text-base font-medium text-primary-foreground">Next</Text>
-                <ChevronRight size={20} color={colors.primaryForeground} />
-              </Button>
-            </CardContent>
-          </Card>
-        </TriageStepShell>
-      );
-    }
-
-    /* ---- Step 4: age band ---- */
-    if (triageStep === 4) {
-      return (
-        <TriageStepShell step={triageStep}
-          title="Approximate age"
-          onBack={() => setTriageStep(3)}
-          onSkip={() => {
-            updateIncident({ ageBand: '' });
-            setTriageStep(5);
-          }}
-        >
-          <Card>
-            <CardContent>
-              <ChipSelect
-                options={AGE_BANDS.map((v) => ({ value: v, label: AGE_LABELS[v] ?? v }))}
-                value={incident.ageBand}
-                onChange={(v) => {
-                  updateIncident({ ageBand: v });
-                  setTriageStep(5);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </TriageStepShell>
-      );
-    }
-
-    /* ---- Step 5: trapped / reachable — last question ---- */
-    return (
-      <TriageStepShell step={triageStep}
-        title="Can you reach them?"
-        onBack={() => setTriageStep(4)}
-        onSkip={() => {
-          updateIncident({ trapped: '' });
-          afterTriage();
-        }}
-      >
-        <Card>
-          <CardContent>
-            <ChipSelect
-              options={TRAPPED_OPTIONS}
-              value={incident.trapped}
-              onChange={(v) => {
-                updateIncident({ trapped: v });
-                afterTriage();
-              }}
-            />
-          </CardContent>
-        </Card>
-      </TriageStepShell>
-    );
   }
 
   /* ------------------------ Stage: interview ------------------------ */
@@ -996,102 +973,48 @@ export default function EmergencyScreen() {
         logInstitutional={logInstitutional}
         onSession={onSession}
         updateIncident={updateIncident}
-        onDone={() => setStage('hazards')}
+        // Reached from the guide screen once care is already underway (see
+        // the "Build scene report" button below) — comes back to guide when
+        // done, not hazards/kit, since those already ran before this.
+        onDone={() => setStage('guide')}
       />
     );
   }
 
-  /* ------------------------- Stage: hazards ------------------------- */
+  /* ------------------------- Stage: hazards -------------------------
+   * Used to be a hazard checklist + a separate "can you reach them?"
+   * triage question — two screens making the bystander itemize danger
+   * before being trusted to act on it. Replaced with one plain-language
+   * reminder: a human on scene already knows what's dangerous better than
+   * a checkbox list can capture, and needs a nudge to weigh their own
+   * safety, not a form. hazardsForContext/POWERTRAIN_OPTIONS/incident.
+   * hazards/incident.powertrain are unused now, left in place — same
+   * "stop asking, don't rip out the plumbing" pattern as ageBand/trapped
+   * above, in case a future version wants structured hazard capture back
+   * (e.g. for an automatic dispatcher alert). */
   if (stage === 'hazards') {
-    const options = hazardsForContext(incident.context ?? 'other');
-    const toggle = (code: string) => {
-      const next = incident.hazards.includes(code)
-        ? incident.hazards.filter((c) => c !== code)
-        : [...incident.hazards, code];
-      updateIncident({ hazards: next });
-    };
-    const blocking = options.filter((h) => incident.hazards.includes(h.code) && h.blocking);
-
     return (
       <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">What can hurt you?</Text>
-          <Text className="mt-2 text-sm text-muted-foreground">
-            A dead rescuer helps nobody. Tick everything you can see — rescuers need this on arrival.
-          </Text>
-        </View>
+        <Card elevated className="border-emergency">
+          <CardContent className="gap-3">
+            <View className="flex-row items-center gap-1.5">
+              <ShieldAlert size={16} color={colors.emergency} />
+              <Text className="text-xs font-semibold uppercase tracking-wide text-emergency">
+                Before you get close
+              </Text>
+            </View>
+            <Text className="text-2xl font-bold text-foreground">Your safety comes first</Text>
+            <Text className="text-base leading-relaxed text-foreground">
+              If it isn&apos;t safe to approach — traffic, fire, electricity, gas, an unstable
+              structure, anything — stay back and wait for professionals. You can&apos;t help anyone
+              if you become a second victim. Use your own judgement; nobody knows this scene better
+              than you do right now.
+            </Text>
+          </CardContent>
+        </Card>
 
-        <View className="gap-2">
-          {options.map((h) => {
-            const active = incident.hazards.includes(h.code);
-            return (
-              <Pressable
-                key={h.code}
-                onPress={() => toggle(h.code)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: active }}
-                className={`rounded-md border p-3 ${
-                  active ? 'border-emergency bg-emergency/10' : 'border-border bg-card'
-                }`}
-              >
-                <View className="flex-row items-center justify-between gap-2">
-                  <Text className="flex-1 font-medium text-foreground">{h.label}</Text>
-                  <Badge variant={active ? 'emergency' : 'secondary'}>{h.family}</Badge>
-                </View>
-                {active && <Text className="mt-1 text-sm text-foreground">{h.warning}</Text>}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {incident.context === 'road' && (
-          <Card>
-            <CardContent className="gap-1.5">
-              <Label>Vehicle type (changes how rescuers cut it open)</Label>
-              <ChipSelect
-                options={POWERTRAIN_OPTIONS}
-                value={incident.powertrain}
-                onChange={(v) => updateIncident({ powertrain: v })}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {blocking.length > 0 && (
-          <Card className="border-emergency">
-            <CardContent>
-              <View className="flex-row items-start gap-2">
-                <ShieldAlert size={16} color={colors.emergency} style={{ marginTop: 2 }} />
-                <Text className="flex-1 text-sm font-semibold text-emergency">
-                  Do not approach. Stay back, keep others back, and report this to 112.
-                </Text>
-              </View>
-              <View className="mt-2 gap-1">
-                {blocking.map((h) => (
-                  <Text key={h.code} className="text-sm text-muted-foreground">
-                    {'• '}
-                    {h.warning}
-                  </Text>
-                ))}
-              </View>
-            </CardContent>
-          </Card>
-        )}
-
-        <Button
-          size="lg"
-          onPress={() => {
-            void logHazards(
-              incident,
-              settings.realDataMode,
-              incident.hazards,
-              logInstitutional,
-              onSession,
-            );
-            setStage('kit');
-          }}
-        >
-          <Text className="text-base font-medium text-primary-foreground">Continue to your kit</Text>
+        <Button size="lg" onPress={() => setStage('kit')}>
+          <Text className="text-base font-medium text-primary-foreground">It&apos;s safe — continue</Text>
           <ChevronRight size={20} color={colors.primaryForeground} />
         </Button>
       </ScrollView>
@@ -1198,7 +1121,7 @@ export default function EmergencyScreen() {
       activeVictimId: null,
       responsive: '',
       breathing: '',
-      injury: '',
+      injury: [],
       ageBand: '',
       trapped: '',
       procedureId: null,
@@ -1220,9 +1143,19 @@ export default function EmergencyScreen() {
         <Button variant="secondary" onPress={() => setStage('kit')}>
           Change my kit
         </Button>
-        {incident.ceimReport && (
+        {incident.ceimReport ? (
           <Button variant="secondary" onPress={() => router.push('/report')}>
             View scene report
+          </Button>
+        ) : (
+          // Paperwork for responders, not first aid — never blocks reaching
+          // this screen (see afterTriage()); offered here as an optional
+          // action once care is already underway and things have settled.
+          <Button variant="secondary" onPress={() => setStage('interview')}>
+            <Sparkles size={16} color={colors.secondaryForeground} />
+            <Text className="text-sm font-medium text-secondary-foreground">
+              Build scene report for responders
+            </Text>
           </Button>
         )}
         {pendingVictims.length > 0 && (

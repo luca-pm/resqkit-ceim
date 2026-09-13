@@ -167,7 +167,18 @@ export interface VictimRecord {
   briefDescription: string;
   responsive: string;
   breathing: string;
-  injury: string;
+  /** Two quick tri-state flags for the brief-description card — same
+   * '' | 'yes' | 'no' shape as responsive/breathing, so "No" and "not
+   * answered yet" stay visually distinct (unlike deriving straight from
+   * `injury`, which can't tell "no" apart from "never touched"). Seed the
+   * full triage's injury multi-select on first entry; the ranking checks
+   * these OR `injury` (whichever has actually been answered). */
+  chokingFlag: string;
+  bleedingFlag: string;
+  /** Multi-select — a bystander can see several problems at once. See
+   * lib/knowledge.ts's primaryInjury()/INJURY_PRIORITY for how routing
+   * picks a single procedure out of these. */
+  injury: string[];
   ageBand: string;
   trapped: string;
   procedureId: string | null;
@@ -180,7 +191,9 @@ export const newVictim = (): VictimRecord => ({
   briefDescription: '',
   responsive: '',
   breathing: '',
-  injury: '',
+  chokingFlag: '',
+  bleedingFlag: '',
+  injury: [],
   ageBand: '',
   trapped: '',
   procedureId: null,
@@ -204,7 +217,8 @@ export interface IncidentState {
   victimCount: number;
   responsive: string;
   breathing: string;
-  injury: string;
+  /** Multi-select — see VictimRecord.injury above. */
+  injury: string[];
   ageBand: string;
   trapped: string;
   hazards: string[];
@@ -306,7 +320,7 @@ export const newIncident = (): IncidentState => ({
   victimCount: 1,
   responsive: '',
   breathing: '',
-  injury: '',
+  injury: [],
   ageBand: '',
   trapped: '',
   hazards: [],

@@ -49,7 +49,7 @@ export default function RegulationsScreen() {
                   </View>
                   <Text className="text-sm text-muted-foreground">{ob.summary}</Text>
                   <View className="flex-row flex-wrap gap-1.5">
-                    <Badge variant="secondary">{ob.jurisdiction}</Badge>
+                    <Badge variant="secondary" tone="pastel">{ob.jurisdiction}</Badge>
                     {ob.tags.map((tag) => (
                       <Badge key={tag} variant="outline">
                         {tag}

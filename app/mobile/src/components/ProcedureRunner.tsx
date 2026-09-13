@@ -128,7 +128,7 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
       <View>
         <View className="flex-row items-center justify-between gap-2">
           <Text className="flex-1 text-xl font-bold text-foreground">{procedure.name}</Text>
-          <Badge variant="secondary">{`${index + 1}/${procedure.steps.length}`}</Badge>
+          <Badge variant="secondary" tone="pastel">{`${index + 1}/${procedure.steps.length}`}</Badge>
         </View>
         <Progress
           value={((index + 1) / procedure.steps.length) * 100}
@@ -155,7 +155,7 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
       )}
 
       {wasInterrupted && (
-        <Card className="border-primary/40">
+        <Card elevated className="border-primary/40">
           <CardContent className="flex-row items-center justify-between gap-3">
             <Text className="flex-1 text-sm text-foreground">
               You were on step {index + 1} of {procedure.steps.length}
@@ -168,7 +168,7 @@ const ProcedureRunner: React.FC<ProcedureRunnerProps> = ({
         </Card>
       )}
 
-      <Card className={step.critical ? 'border-emergency/50' : ''}>
+      <Card elevated className={step.critical ? 'border-emergency/50' : ''}>
         <CardContent className="gap-3 p-5">
           {step.critical && (
             <View className="flex-row items-center gap-1.5">

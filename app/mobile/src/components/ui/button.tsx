@@ -35,16 +35,19 @@ const TEXT_VARIANTS: Record<ButtonVariant, string> = {
   emergency: 'text-emergency-foreground',
 };
 
+// Bumped toward the reference design's chunkier, more tappable scale
+// (its buttons/inputs are uniformly 56px tall) — every existing call site
+// gets the new size automatically, no per-screen changes needed.
 const SIZE_CONTAINER: Record<ButtonSize, string> = {
-  default: 'h-11 px-4',
-  sm: 'h-9 px-3',
-  lg: 'h-13 px-6',
+  default: 'h-14 px-5',
+  sm: 'h-10 px-4',
+  lg: 'h-16 px-6',
 };
 
 const SIZE_TEXT: Record<ButtonSize, string> = {
-  default: 'text-sm',
-  sm: 'text-xs',
-  lg: 'text-base',
+  default: 'text-base',
+  sm: 'text-sm',
+  lg: 'text-lg',
 };
 
 export const Button: React.FC<ButtonProps> = ({

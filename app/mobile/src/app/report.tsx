@@ -62,7 +62,9 @@ const FactRow: React.FC<{ label: string; fact?: Fact<unknown> | null }> = ({ lab
         <Text className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Text>
         <Text className="text-sm text-foreground">{String(fact.value)}</Text>
       </View>
-      <Badge variant={CONFIDENCE_VARIANT[fact.confidence] ?? 'secondary'}>{fact.confidence}</Badge>
+      <Badge variant={CONFIDENCE_VARIANT[fact.confidence] ?? 'secondary'} tone="pastel">
+        {fact.confidence}
+      </Badge>
     </View>
   );
 };
@@ -266,7 +268,7 @@ export default function ReportScreen() {
       <View>
         <Text className="text-2xl font-bold text-foreground">Scene report</Text>
         {ceim.degraded && (
-          <Badge variant="emergency" className="mt-2 self-start">
+          <Badge variant="emergency" tone="pastel" className="mt-2 self-start">
             Built from your answers directly — AI summary unavailable
           </Badge>
         )}
@@ -332,7 +334,7 @@ export default function ReportScreen() {
           </CardHeader>
           <CardContent className="flex-row flex-wrap gap-1.5">
             {ceim.kit_items.map((item, i) => (
-              <Badge key={i} variant="secondary">
+              <Badge key={i} variant="secondary" tone="pastel">
                 {item.value}
               </Badge>
             ))}
@@ -414,7 +416,9 @@ export default function ReportScreen() {
           {ngError !== '' && <Text className="text-xs text-destructive">{ngError}</Text>}
           {ngPreview && (
             <View className="gap-2 rounded-md border border-border bg-background p-3">
-              <Badge variant="secondary">{ngPreview.ceim_driven ? 'CEIM-driven' : 'From session log'}</Badge>
+              <Badge variant="secondary" tone="pastel">
+                {ngPreview.ceim_driven ? 'CEIM-driven' : 'From session log'}
+              </Badge>
               <Text className="font-mono text-xs text-foreground">{ngPreview.additional_data.comment}</Text>
               {ngPreview.pidf_lo && (
                 <Text className="font-mono text-xs text-foreground">{ngPreview.pidf_lo}</Text>
@@ -446,7 +450,7 @@ export default function ReportScreen() {
           {edxlError !== '' && <Text className="text-xs text-destructive">{edxlError}</Text>}
           {edxlPreview && (
             <View className="gap-2 rounded-md border border-border bg-background p-3">
-              <Badge variant={edxlPreview.validation.valid ? 'secondary' : 'emergency'}>
+              <Badge variant={edxlPreview.validation.valid ? 'secondary' : 'emergency'} tone="pastel">
                 {edxlPreview.validation.valid === true
                   ? 'Schema-valid'
                   : edxlPreview.validation.valid === false

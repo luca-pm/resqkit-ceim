@@ -61,7 +61,11 @@ export default function LearnScreen() {
                         <Text className="text-sm font-semibold text-foreground">
                           {`${i + 1}. ${step.title}`}
                         </Text>
-                        {step.critical && <Badge variant="emergency">critical</Badge>}
+                        {step.critical && (
+                          <Badge variant="emergency" tone="pastel">
+                            critical
+                          </Badge>
+                        )}
                       </View>
                       <Text className="text-sm text-muted-foreground">{step.detail}</Text>
                       {step.withoutItem && (

@@ -133,7 +133,7 @@ const KitScanner: React.FC<KitScannerProps> = ({ context, selected, onChange }) 
 
   return (
     <View className="gap-4">
-      <Card>
+      <Card elevated>
         <CardContent className="gap-3">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
@@ -144,7 +144,7 @@ const KitScanner: React.FC<KitScannerProps> = ({ context, selected, onChange }) 
                 One photo, analysed for objects only. The image is never saved or uploaded.
               </Text>
               <View className="mt-1.5 flex-row items-center gap-1.5">
-                <Badge variant="secondary">Open-source AI</Badge>
+                <Badge variant="secondary" tone="pastel">Open-source AI</Badge>
                 <Text className="flex-1 text-xs text-muted-foreground">
                   Recognition runs on a model self-hosted on the server.
                 </Text>
@@ -218,7 +218,7 @@ const KitScanner: React.FC<KitScannerProps> = ({ context, selected, onChange }) 
                   {results.map((r) => (
                     <View key={r.code} className="flex-row items-center justify-between gap-2">
                       <Text className="flex-1 text-sm text-foreground">{r.name}</Text>
-                      <Badge variant={r.confidence >= 0.5 ? 'default' : 'secondary'}>
+                      <Badge variant={r.confidence >= 0.5 ? 'default' : 'secondary'} tone="pastel">
                         {`${Math.round(r.confidence * 100)}%`}
                       </Badge>
                     </View>
