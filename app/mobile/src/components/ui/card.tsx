@@ -3,15 +3,15 @@ import { Text, View, ViewProps } from 'react-native';
 
 // RN shadows are platform style props, not expressible via className, so
 // this stays a small shared style constant rather than an ad hoc value per
-// call site. Theme-agnostic on purpose (a literal black at low opacity
-// reads as "soft elevation" in both light and dark, same as the reference
-// design's own shadow tokens) rather than trying to resolve a CSS var here.
+// call site. Matches Alexandra's reference design's SHADOWS.medium exactly
+// (src/design/shadows.js) — theme-agnostic on purpose (a literal black at
+// low opacity reads as "soft elevation" in both light and dark).
 const ELEVATED_SHADOW = {
   shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.12,
-  shadowRadius: 6,
-  elevation: 3,
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.18,
+  shadowRadius: 5,
+  elevation: 4,
 };
 
 interface CardProps extends ViewProps {

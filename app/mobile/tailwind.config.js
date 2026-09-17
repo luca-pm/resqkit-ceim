@@ -72,10 +72,16 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
+      // Matches Alexandra's reference design's RADIUS scale (src/design/radius.js)
+      // exactly, in rem (1rem = 16px): xs 6px, sm 8px, md 12px, lg 16px, xl 24px.
+      // Previously derived from a single --radius var (2rem base) via
+      // subtraction, which landed roughly double her scale on every corner.
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 0.5rem)',
-        sm: 'calc(var(--radius) - 1rem)',
+        xs: '0.375rem',
+        sm: '0.5rem',
+        md: '0.75rem',
+        lg: '1rem',
+        xl: '1.5rem',
       },
     },
   },

@@ -10,6 +10,10 @@ import { DARK_COLORS, LIGHT_COLORS } from './tokenColors';
 
 export const paperLightTheme = {
   ...MD3LightTheme,
+  // Matches her theme.js's roundness: 12 exactly (her RADIUS.md) — governs
+  // the corner radius Paper's own components (Button, Card, TextInput, etc.)
+  // derive their border-radius from.
+  roundness: 12,
   colors: {
     ...MD3LightTheme.colors,
     primary: LIGHT_COLORS.primary,
@@ -30,6 +34,7 @@ export const paperLightTheme = {
 
 export const paperDarkTheme = {
   ...MD3DarkTheme,
+  roundness: 12,
   colors: {
     ...MD3DarkTheme.colors,
     primary: DARK_COLORS.primary,

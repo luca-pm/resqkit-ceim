@@ -46,7 +46,10 @@
   --border: 210 20% 85%;
   --input: 210 20% 85%;
   --ring: 189 78% 32%;
-  --radius: 2rem;
+  /* No longer read directly (tailwind.config.js now has its own explicit
+     xs/sm/md/lg/xl scale matching Alexandra's design), kept as a record of
+     the old base value in case anything still expects the var to exist. */
+  --radius: 1rem;
 
   /* Pastel ("tint") pairs for Badge's optional tone="pastel" — a soft
    * tinted background + saturated text, matching the reference design's
