@@ -24,10 +24,12 @@ Everything today — the NG protocol payload builder, EDXL-SitRep adapter, the I
 
 ## Data/UX decisions deliberately parked — each has a specific trigger to revisit
 
-### Age-tailored first-aid procedures
-The "Approximate age" triage question was removed from `emergency.tsx`'s critical path on 2026-09-12, because no procedure in `knowledge.ts` currently branches on age — asking it bought nothing and just delayed reaching the guide. `ageBand` stays in `IncidentState`/`VictimRecord`, just unused; `AGE_BANDS`/`AGE_LABELS` stay exported for `incident-detail.tsx`.
+### ~~Age-tailored first-aid procedures~~ — DONE, narrowly (2026-09-17)
+The "Approximate age" triage question was removed from `emergency.tsx`'s critical path on 2026-09-12 because no procedure branched on age at the time. Brought back, but only for the two procedures where it turned out to be exactly the concrete example already on the table here: `choking` (abdominal thrusts are contraindicated on an infant — back blows + chest thrusts instead) and `cpr_aed` (infant = two-finger compressions ~4cm deep, child = one-hand heel ~5cm, both distinct from the adult two-handed technique). Confirmed as real, well-established first-aid facts (not invented) while comparing against Alexandra's now-much-more-developed reference implementation, which branches on the identical three age bands for the identical two reasons.
 
-**Bring back when:** any procedure genuinely needs to differ by age. Concrete example already on the table: infant CPR is two-finger chest compressions, not two-handed; infant recovery position differs from an adult's. At that point `ageBand` stops being pure reporting metadata and becomes safety-relevant.
+Implementation: `ProcedureStep.ageVariants` (`src/lib/knowledge.ts`) holds per-step title/detail overrides for `infant`/`child`; `resolveProcedureSteps()` applies them; `PROCEDURES_NEEDING_AGE_BAND` (`['choking', 'cpr_aed']`) gates a new `'age'` stage in `emergency.tsx` that only triggers for those two — routing to `severe_bleeding`/`burns`/`fracture`/`hypothermia` is completely unaffected, same number of questions as before. Content is marked `clinicalReview: 'pending'`, same as the rest of `choking`/`cpr_aed` already were — this is new content, not yet independently reviewed, despite being standard/well-established guidance.
+
+**Not done:** every other procedure still doesn't branch on age, correctly — the original "bring back only when a procedure genuinely needs it" bar stays the rule, this didn't turn into a general age-tailoring pass.
 
 ### Structured hazard reporting to first responders
 The hazard checklist ("What can hurt you?" — tap every hazard, per-hazard warnings, a "Do not approach" banner) and the separate "Can you reach them?" triage question were both replaced on 2026-09-12 with one plain-language safety reminder. No structured hazard/access data is collected from the bystander in the critical path anymore — `incident.hazards`/`incident.powertrain`/`incident.trapped` stay in the data model, just unused. The AI interview's existing free-text prompt ("What hazards or dangers do you see...") remains the only path hazard detail takes into the CEIM report today, and it's optional and reached after the guide, not before it.
@@ -61,6 +63,7 @@ Every raster image in `app/mobile/assets/images/` (`icon.png`, `splash-icon.png`
 
 - **Romanian STT locale** — `VoiceInput`'s `locale` prop defaults to `'en-US'`; a `ro-RO` option is typed on `VoiceLocale` but never wired up or confirmed as actually needed.
 - **Segmented control** (a pattern noticed in the Alexandra reference design during the visual revamp) — a clean two/three-way toggle look; no current use case in the app, so not built speculatively. Revisit if a real multi-way toggle need shows up.
+- **A "practice mode"** — Alexandra's newer, functionally-real repo has one (`practiceHomeScreen`/`practiceProtocolScreen`, 2026-09): rehearse a protocol using the same content as the real emergency flow, but "call 112" is an `Alert` explaining it's simulated instead of actually dialling, and nothing writes to history. Interesting idea (matches this app's own "Learn & practise" intent but interactive rather than read-only), no user decision made on it yet — noting it so it isn't lost, not proposing it.
 
 ## Explicitly rejected, not deferred
 

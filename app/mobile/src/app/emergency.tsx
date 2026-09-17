@@ -8,7 +8,14 @@
  * transmitted anywhere by the app.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -53,8 +60,10 @@ import {
 import {
   CONTEXTS,
   INJURY_OPTIONS,
+  PROCEDURES_NEEDING_AGE_BAND,
   procedureById,
   rankVictims,
+  resolveProcedureSteps,
   routeProcedure,
   victimUrgencyRank,
 } from '@/lib/knowledge';
@@ -62,9 +71,21 @@ import { speak, stopSpeaking } from '@/lib/speech';
 import { CompletedStep, VictimRecord, newVictim } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
-type Stage = 'context' | 'call' | 'victims' | 'triage' | 'interview' | 'hazards' | 'kit' | 'guide';
+type Stage =
+  | 'context'
+  | 'call'
+  | 'victims'
+  | 'triage'
+  | 'age'
+  | 'interview'
+  | 'hazards'
+  | 'kit'
+  | 'guide';
 
-const CONTEXT_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+const CONTEXT_ICONS: Record<
+  string,
+  React.ComponentType<{ size?: number; color?: string }>
+> = {
   car: Car,
   building: Building2,
   anchor: Anchor,
@@ -82,15 +103,24 @@ export const TRAPPED_OPTIONS = [
   { value: '', label: 'Not recorded' },
   { value: 'Accessible', label: 'Yes, I can reach them' },
   { value: 'Trapped in vehicle', label: 'Trapped in a vehicle' },
-  { value: 'Trapped under load or debris', label: 'Trapped under load or debris' },
+  {
+    value: 'Trapped under load or debris',
+    label: 'Trapped under load or debris',
+  },
   { value: 'In water', label: 'In the water' },
-  { value: 'Unreachable — hazard in the way', label: 'Unreachable, hazard in the way' },
+  {
+    value: 'Unreachable — hazard in the way',
+    label: 'Unreachable, hazard in the way',
+  },
 ];
 
 export const POWERTRAIN_OPTIONS = [
   { value: '', label: 'Not sure' },
   { value: 'Petrol or diesel', label: 'Petrol or diesel' },
-  { value: 'Electric (high-voltage battery)', label: 'Electric (high-voltage battery)' },
+  {
+    value: 'Electric (high-voltage battery)',
+    label: 'Electric (high-voltage battery)',
+  },
   { value: 'Hybrid', label: 'Hybrid' },
   { value: 'LPG or CNG', label: 'LPG or CNG' },
   { value: 'Heavy goods vehicle', label: 'Heavy goods vehicle' },
@@ -115,7 +145,9 @@ const ChipSelect: React.FC<{
             active ? 'border-primary bg-primary/10' : 'border-border bg-card'
           }`}
         >
-          <Text className={`text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+          <Text
+            className={`text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
+          >
             {opt.label}
           </Text>
         </Pressable>
@@ -149,13 +181,18 @@ const TriageStepShell: React.FC<{
   }, [title, subtitle]);
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-5 p-4 pb-10"
+    >
       <View>
         <Text className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Question {step + 1} of {TRIAGE_STEP_COUNT}
         </Text>
         <View className="mt-1 flex-row items-start justify-between gap-2">
-          <Text className="flex-1 text-2xl font-bold text-foreground">{title}</Text>
+          <Text className="flex-1 text-2xl font-bold text-foreground">
+            {title}
+          </Text>
           <Pressable
             onPress={() => speak(subtitle ? `${title}. ${subtitle}` : title)}
             accessibilityRole="button"
@@ -166,16 +203,24 @@ const TriageStepShell: React.FC<{
             <Volume2 size={20} color={colors.mutedForeground} />
           </Pressable>
         </View>
-        {subtitle && <Text className="mt-2 text-sm text-muted-foreground">{subtitle}</Text>}
+        {subtitle && (
+          <Text className="mt-2 text-sm text-muted-foreground">{subtitle}</Text>
+        )}
       </View>
       {children}
       <View className="flex-row items-center justify-between">
         <Pressable onPress={onBack} disabled={!onBack} hitSlop={8}>
-          <Text className={`text-sm font-medium ${onBack ? 'text-foreground' : 'text-transparent'}`}>← Back</Text>
+          <Text
+            className={`text-sm font-medium ${onBack ? 'text-foreground' : 'text-transparent'}`}
+          >
+            ← Back
+          </Text>
         </Pressable>
         {onSkip && (
           <Pressable onPress={onSkip} hitSlop={8}>
-            <Text className="text-sm font-medium text-muted-foreground">Don&apos;t know / Skip →</Text>
+            <Text className="text-sm font-medium text-muted-foreground">
+              Don&apos;t know / Skip →
+            </Text>
           </Pressable>
         )}
       </View>
@@ -183,13 +228,17 @@ const TriageStepShell: React.FC<{
   );
 };
 
-const CPR_BANNER_TEXT = 'Not breathing means CPR now. Skip the rest of the questions.';
+const CPR_BANNER_TEXT =
+  'Not breathing means CPR now. Skip the rest of the questions.';
 
 /** Module-scoped for the same reason as TriageStepShell — and because its
  * own useEffect (reading the banner aloud once) can only be called
  * unconditionally from within its own render, not from inside the parent's
  * `if (incident.breathing === 'no')` branch. */
-const CprFastPathBanner: React.FC<{ onStart: () => void; onRecheck: () => void }> = ({ onStart, onRecheck }) => {
+const CprFastPathBanner: React.FC<{
+  onStart: () => void;
+  onRecheck: () => void;
+}> = ({ onStart, onRecheck }) => {
   const colors = useTokenColors();
 
   useEffect(() => {
@@ -198,12 +247,21 @@ const CprFastPathBanner: React.FC<{ onStart: () => void; onRecheck: () => void }
   }, []);
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-5 p-4 pb-10"
+    >
       <Card className="border-emergency">
         <CardContent className="gap-3">
           <View className="flex-row items-start gap-2">
-            <ShieldAlert size={16} color={colors.emergency} style={{ marginTop: 2 }} />
-            <Text className="flex-1 text-sm font-semibold text-emergency">{CPR_BANNER_TEXT}</Text>
+            <ShieldAlert
+              size={16}
+              color={colors.emergency}
+              style={{ marginTop: 2 }}
+            />
+            <Text className="flex-1 text-sm font-semibold text-emergency">
+              {CPR_BANNER_TEXT}
+            </Text>
           </View>
           <Button size="lg" onPress={onStart}>
             Start CPR guidance
@@ -238,11 +296,18 @@ export default function EmergencyScreen() {
   // that already has a context lands directly on the 112 gate instead of
   // flashing the context picker first.
   const [stageOverride, setStageOverride] = useState<Stage | null>(null);
-  const stage: Stage = stageOverride ?? (incident?.context ? 'call' : 'context');
+  const stage: Stage =
+    stageOverride ?? (incident?.context ? 'call' : 'context');
   const setStage = setStageOverride;
 
   const [locating, setLocating] = useState(false);
   const [testingVoiceChannel, setTestingVoiceChannel] = useState(false);
+  // Where to land once the age question (stage 'age') is answered — set
+  // right before switching into it, since the two paths that can trigger it
+  // (normal triage vs. the CPR fast path) don't agree on what comes next.
+  const [postAgeStage, setPostAgeStage] = useState<'guide' | 'hazards'>(
+    'guide',
+  );
 
   // Triage is a sequential, one-question-per-screen wizard: 0 responsive,
   // 1 breathing, 2 injury (multi-select). There's no separate "how many
@@ -307,7 +372,8 @@ export default function EmergencyScreen() {
   const captureLocation = async () => {
     setLocating(true);
     try {
-      const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
+      const { status, canAskAgain } =
+        await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         toast.error(
           canAskAgain
@@ -325,7 +391,9 @@ export default function EmergencyScreen() {
         accuracy: pos.coords.accuracy,
         locationFixAt: new Date().toISOString(),
       });
-      toast.success('Position captured for you to read out. Not sent anywhere.');
+      toast.success(
+        'Position captured for you to read out. Not sent anywhere.',
+      );
     } catch {
       toast.error('Could not get a fix. Describe a landmark instead.');
     } finally {
@@ -336,7 +404,11 @@ export default function EmergencyScreen() {
   const procedure = useMemo(() => {
     if (!incident) return undefined;
     const id = incident.procedureId ?? routeProcedure(incident);
-    return procedureById(id);
+    const found = procedureById(id);
+    if (!found) return undefined;
+    // Only choking/cpr_aed actually have ageVariants; resolveProcedureSteps
+    // is a no-op passthrough for everything else.
+    return { ...found, steps: resolveProcedureSteps(found, incident.ageBand) };
   }, [incident]);
 
   if (!ready || !incident) {
@@ -355,7 +427,11 @@ export default function EmergencyScreen() {
   };
 
   const updateVictimBrief = (id: string, patch: Partial<VictimRecord>) =>
-    updateIncident({ victims: incident.victims.map((v) => (v.id === id ? { ...v, ...patch } : v)) });
+    updateIncident({
+      victims: incident.victims.map((v) =>
+        v.id === id ? { ...v, ...patch } : v,
+      ),
+    });
 
   /** Makes `id` the active victim: loads its (possibly blank) triage answers
    * into the shared scratch fields the rest of the wizard already reads. */
@@ -369,7 +445,10 @@ export default function EmergencyScreen() {
     const seededInjury =
       v.injury.length > 0
         ? v.injury
-        : [...(v.chokingFlag === 'yes' ? ['choking'] : []), ...(v.bleedingFlag === 'yes' ? ['bleeding'] : [])];
+        : [
+            ...(v.chokingFlag === 'yes' ? ['choking'] : []),
+            ...(v.bleedingFlag === 'yes' ? ['bleeding'] : []),
+          ];
     updateIncident({
       activeVictimId: id,
       responsive: v.responsive,
@@ -380,7 +459,9 @@ export default function EmergencyScreen() {
       procedureId: v.procedureId,
       completedSteps: v.completedSteps,
       victims: incident.victims.map((vv) =>
-        vv.id === id && vv.status === 'pending' ? { ...vv, status: 'in_progress' } : vv,
+        vv.id === id && vv.status === 'pending'
+          ? { ...vv, status: 'in_progress' }
+          : vv,
       ),
     });
     // Don't re-ask what the brief-description card already answered — those
@@ -430,23 +511,30 @@ export default function EmergencyScreen() {
    * never delay reaching the actual guided procedure. It's offered as an
    * optional action from the guide screen once care is already underway. */
   const afterTriage = () => {
-    if (incident.sceneContextDone) {
-      updateIncident({ procedureId: routeProcedure(incident) });
-      setStage('guide');
-    } else {
-      setStage('hazards');
+    const id = routeProcedure(incident);
+    updateIncident({ procedureId: id });
+    if (PROCEDURES_NEEDING_AGE_BAND.includes(id) && !incident.ageBand) {
+      setPostAgeStage(incident.sceneContextDone ? 'guide' : 'hazards');
+      setStage('age');
+      return;
     }
+    setStage(incident.sceneContextDone ? 'guide' : 'hazards');
   };
 
   /* ------------------------- Stage: context ------------------------- */
   if (stage === 'context') {
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
         <View>
-          <Text className="text-2xl font-bold text-foreground">Where are you?</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            Where are you?
+          </Text>
           <Text className="mt-2 text-sm text-muted-foreground">
-            This decides which kit contents and which hazards ResQKit shows you. Pick the closest
-            match — you can be approximate.
+            This decides which kit contents and which hazards ResQKit shows you.
+            Pick the closest match — you can be approximate.
           </Text>
         </View>
         <View className="gap-3">
@@ -475,8 +563,12 @@ export default function EmergencyScreen() {
                   <Icon size={20} color={colors.primaryForeground} />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-semibold text-foreground">{ctx.label}</Text>
-                  <Text className="text-sm text-muted-foreground">{ctx.blurb}</Text>
+                  <Text className="font-semibold text-foreground">
+                    {ctx.label}
+                  </Text>
+                  <Text className="text-sm text-muted-foreground">
+                    {ctx.blurb}
+                  </Text>
                 </View>
                 <ChevronRight size={20} color={colors.mutedForeground} />
               </Pressable>
@@ -486,7 +578,9 @@ export default function EmergencyScreen() {
         {settings.lastContext && (
           <Text className="text-xs text-muted-foreground">
             Last time you used{' '}
-            {CONTEXTS.find((c) => c.id === settings.lastContext)?.label ?? settings.lastContext}.
+            {CONTEXTS.find((c) => c.id === settings.lastContext)?.label ??
+              settings.lastContext}
+            .
           </Text>
         )}
       </ScrollView>
@@ -497,12 +591,17 @@ export default function EmergencyScreen() {
   if (stage === 'call') {
     const script = buildDispatcherScript(incident);
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
         <View>
-          <Text className="text-2xl font-bold text-foreground">Has 112 been called?</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            Has 112 been called?
+          </Text>
           <Text className="mt-2 text-sm text-muted-foreground">
-            Nothing else in this app matters more than this answer. ResQKit cannot make the call for
-            you.
+            Nothing else in this app matters more than this answer. ResQKit
+            cannot make the call for you.
           </Text>
         </View>
 
@@ -510,16 +609,30 @@ export default function EmergencyScreen() {
           <CardContent className="gap-3">
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
-                <Text className="font-semibold text-foreground">Your position</Text>
-                <Text className="text-sm text-muted-foreground">{formatCoords(incident)}</Text>
+                <Text className="font-semibold text-foreground">
+                  Your position
+                </Text>
+                <Text className="text-sm text-muted-foreground">
+                  {formatCoords(incident)}
+                </Text>
               </View>
-              <Button size="sm" variant="secondary" onPress={captureLocation} disabled={locating}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onPress={captureLocation}
+                disabled={locating}
+              >
                 {locating ? (
-                  <ActivityIndicator size="small" color={colors.secondaryForeground} />
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.secondaryForeground}
+                  />
                 ) : (
                   <Crosshair size={16} color={colors.secondaryForeground} />
                 )}
-                <Text className="text-xs font-medium text-secondary-foreground">Get fix</Text>
+                <Text className="text-xs font-medium text-secondary-foreground">
+                  Get fix
+                </Text>
               </Button>
             </View>
             <View className="gap-1.5">
@@ -541,7 +654,9 @@ export default function EmergencyScreen() {
           <CardContent className="gap-3">
             <Text className="font-semibold text-foreground">What to say</Text>
             <View className="rounded-md bg-muted p-3">
-              <Text className="font-mono text-xs leading-relaxed text-foreground">{script}</Text>
+              <Text className="font-mono text-xs leading-relaxed text-foreground">
+                {script}
+              </Text>
             </View>
             <Button
               size="sm"
@@ -556,7 +671,9 @@ export default function EmergencyScreen() {
               }}
             >
               <Copy size={16} color={colors.secondaryForeground} />
-              <Text className="text-xs font-medium text-secondary-foreground">Copy script</Text>
+              <Text className="text-xs font-medium text-secondary-foreground">
+                Copy script
+              </Text>
             </Button>
           </CardContent>
         </Card>
@@ -567,13 +684,23 @@ export default function EmergencyScreen() {
             variant="emergency"
             onPress={() => {
               updateIncident({ called112: 'called' });
-              toast.success('Marked as called. Stay on the line with the operator.');
-              void connectNg112(incident, settings.realDataMode, 'called', logInstitutional, onSession);
+              toast.success(
+                'Marked as called. Stay on the line with the operator.',
+              );
+              void connectNg112(
+                incident,
+                settings.realDataMode,
+                'called',
+                logInstitutional,
+                onSession,
+              );
               callEmergencyServices();
             }}
           >
             <Phone size={20} color={colors.emergencyForeground} />
-            <Text className="text-base font-semibold text-emergency-foreground">Call 112 now</Text>
+            <Text className="text-base font-semibold text-emergency-foreground">
+              Call 112 now
+            </Text>
           </Button>
           <Button
             size="lg"
@@ -596,11 +723,14 @@ export default function EmergencyScreen() {
             </Text>
           </Button>
           <Button size="lg" onPress={() => setStage('victims')}>
-            <Text className="text-base font-medium text-primary-foreground">Continue to first aid</Text>
+            <Text className="text-base font-medium text-primary-foreground">
+              Continue to first aid
+            </Text>
             <ChevronRight size={20} color={colors.primaryForeground} />
           </Button>
           <Text className="text-xs text-muted-foreground">
-            If nobody has called, the red banner stays on screen for the whole session until you do.
+            If nobody has called, the red banner stays on screen for the whole
+            session until you do.
           </Text>
         </View>
 
@@ -609,7 +739,9 @@ export default function EmergencyScreen() {
             <CardContent className="gap-1.5">
               <View className="flex-row items-center gap-1.5">
                 <Radio size={16} color={colors.primary} />
-                <Text className="text-sm font-semibold text-foreground">ISU dashboard pairing code</Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  ISU dashboard pairing code
+                </Text>
               </View>
               {incident.sessionCode ? (
                 <>
@@ -617,13 +749,15 @@ export default function EmergencyScreen() {
                     {incident.sessionCode}
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    Enter this code on the ISU dashboard to watch this incident live.
+                    Enter this code on the ISU dashboard to watch this incident
+                    live.
                   </Text>
                 </>
               ) : (
                 <Text className="text-xs text-muted-foreground">
-                  Simulated on this device — no dashboard can connect. Turn on Local backend mode in
-                  Settings to get a real pairing code (still never sent beyond your own machine).
+                  Simulated on this device — no dashboard can connect. Turn on
+                  Local backend mode in Settings to get a real pairing code
+                  (still never sent beyond your own machine).
                 </Text>
               )}
             </CardContent>
@@ -639,8 +773,8 @@ export default function EmergencyScreen() {
               </Text>
             </View>
             <Text className="text-xs text-muted-foreground">
-              Fires a passive-voice-recognition request and a transcript websocket test, logged to
-              Settings → Institutional actions trace.{' '}
+              Fires a passive-voice-recognition request and a transcript
+              websocket test, logged to Settings → Institutional actions trace.{' '}
               {settings.realDataMode
                 ? 'Local backend mode is on (your machine only).'
                 : 'Currently simulated on this device — nothing is sent, not even locally.'}
@@ -661,18 +795,25 @@ export default function EmergencyScreen() {
                   // Without this the action is completely silent — it only
                   // writes to the trace on another screen, which reads as a
                   // dead button.
-                  toast.success('Voice channel test logged. See Settings → Institutional actions.');
+                  toast.success(
+                    'Voice channel test logged. See Settings → Institutional actions.',
+                  );
                 } finally {
                   setTestingVoiceChannel(false);
                 }
               }}
             >
               {testingVoiceChannel ? (
-                <ActivityIndicator size="small" color={colors.secondaryForeground} />
+                <ActivityIndicator
+                  size="small"
+                  color={colors.secondaryForeground}
+                />
               ) : (
                 <Radio size={16} color={colors.secondaryForeground} />
               )}
-              <Text className="text-xs font-medium text-secondary-foreground">Test voice channel</Text>
+              <Text className="text-xs font-medium text-secondary-foreground">
+                Test voice channel
+              </Text>
             </Button>
           </CardContent>
         </Card>
@@ -690,13 +831,18 @@ export default function EmergencyScreen() {
     const ranked = rankVictims(incident.victims);
 
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
         <View>
-          <Text className="text-2xl font-bold text-foreground">Who needs help?</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            Who needs help?
+          </Text>
           <Text className="mt-2 text-sm text-muted-foreground">
-            More than one injured person? Add each one with a brief description. ResQKit ranks them
-            by urgency below — no AI involved, only the answers you give here — then you pick who to
-            help first.
+            More than one injured person? Add each one with a brief description.
+            ResQKit ranks them by urgency below — no AI involved, only the
+            answers you give here — then you pick who to help first.
           </Text>
         </View>
 
@@ -708,32 +854,63 @@ export default function EmergencyScreen() {
             // breathing-critical victim (rank 0) gets the reserved red —
             // an unresponsive-but-breathing or heavily-bleeding victim
             // (rank 1-2) reads as amber, distinct but a notch down.
-            const severity: 'critical' | 'warning' | 'normal' =
-              done ? 'normal' : rank === 0 ? 'critical' : rank <= 2 ? 'warning' : 'normal';
+            const severity: 'critical' | 'warning' | 'normal' = done
+              ? 'normal'
+              : rank === 0
+                ? 'critical'
+                : rank <= 2
+                  ? 'warning'
+                  : 'normal';
             const cardBorderClass =
-              severity === 'critical' ? 'border-emergency' : severity === 'warning' ? 'border-warning' : undefined;
+              severity === 'critical'
+                ? 'border-emergency'
+                : severity === 'warning'
+                  ? 'border-warning'
+                  : undefined;
             const priorityBadgeVariant =
-              severity === 'critical' ? 'emergency' : severity === 'warning' ? 'warning' : 'secondary';
+              severity === 'critical'
+                ? 'emergency'
+                : severity === 'warning'
+                  ? 'warning'
+                  : 'secondary';
             return (
               // `layout` animates this card gliding to its new slot whenever
               // the sort order changes (Kahoot-leaderboard style) — keyed on
               // the stable victim id so Reanimated tracks it across reorders
               // instead of treating it as a fresh mount.
-              <Animated.View key={v.id} layout={LinearTransition.springify().damping(18).stiffness(160)}>
+              <Animated.View
+                key={v.id}
+                layout={LinearTransition.springify().damping(18).stiffness(160)}
+              >
                 <Card className={cardBorderClass}>
                   <CardContent className="gap-3">
                     <View className="flex-row items-center justify-between">
-                      <Badge variant={priorityBadgeVariant} tone="pastel">{`#${idx + 1} priority`}</Badge>
                       <Badge
-                        variant={done ? 'secondary' : v.status === 'in_progress' ? 'default' : 'outline'}
+                        variant={priorityBadgeVariant}
+                        tone="pastel"
+                      >{`#${idx + 1} priority`}</Badge>
+                      <Badge
+                        variant={
+                          done
+                            ? 'secondary'
+                            : v.status === 'in_progress'
+                              ? 'default'
+                              : 'outline'
+                        }
                         tone="pastel"
                       >
-                        {done ? 'Done' : v.status === 'in_progress' ? 'In progress' : 'Not started'}
+                        {done
+                          ? 'Done'
+                          : v.status === 'in_progress'
+                            ? 'In progress'
+                            : 'Not started'}
                       </Badge>
                     </View>
                     <TextInput
                       value={v.briefDescription}
-                      onChangeText={(text) => updateVictimBrief(v.id, { briefDescription: text })}
+                      onChangeText={(text) =>
+                        updateVictimBrief(v.id, { briefDescription: text })
+                      }
                       editable={!done}
                       multiline
                       placeholder='Name, or a quick identifier — e.g. "the driver", "child in the back seat"'
@@ -748,7 +925,9 @@ export default function EmergencyScreen() {
                           <ChipSelect
                             options={yesNoUnsure}
                             value={v.breathing}
-                            onChange={(val) => updateVictimBrief(v.id, { breathing: val })}
+                            onChange={(val) =>
+                              updateVictimBrief(v.id, { breathing: val })
+                            }
                           />
                         </View>
                         <View className="gap-1">
@@ -756,7 +935,9 @@ export default function EmergencyScreen() {
                           <ChipSelect
                             options={yesNoUnsure}
                             value={v.responsive}
-                            onChange={(val) => updateVictimBrief(v.id, { responsive: val })}
+                            onChange={(val) =>
+                              updateVictimBrief(v.id, { responsive: val })
+                            }
                           />
                         </View>
                         <View className="gap-1">
@@ -764,7 +945,9 @@ export default function EmergencyScreen() {
                           <ChipSelect
                             options={yesNoUnsure}
                             value={v.chokingFlag}
-                            onChange={(val) => updateVictimBrief(v.id, { chokingFlag: val })}
+                            onChange={(val) =>
+                              updateVictimBrief(v.id, { chokingFlag: val })
+                            }
                           />
                         </View>
                         <View className="gap-1">
@@ -772,18 +955,33 @@ export default function EmergencyScreen() {
                           <ChipSelect
                             options={yesNoUnsure}
                             value={v.bleedingFlag}
-                            onChange={(val) => updateVictimBrief(v.id, { bleedingFlag: val })}
+                            onChange={(val) =>
+                              updateVictimBrief(v.id, { bleedingFlag: val })
+                            }
                           />
                         </View>
                       </>
                     )}
-                    <Button variant={done ? 'secondary' : 'default'} disabled={done} onPress={() => selectVictim(v.id)}>
+                    <Button
+                      variant={done ? 'secondary' : 'default'}
+                      disabled={done}
+                      onPress={() => selectVictim(v.id)}
+                    >
                       <Text
                         className={`text-sm font-medium ${done ? 'text-secondary-foreground' : 'text-primary-foreground'}`}
                       >
-                        {done ? 'Completed' : v.status === 'in_progress' ? 'Continue with this victim' : 'Start with this victim'}
+                        {done
+                          ? 'Completed'
+                          : v.status === 'in_progress'
+                            ? 'Continue with this victim'
+                            : 'Start with this victim'}
                       </Text>
-                      {!done && <ChevronRight size={18} color={colors.primaryForeground} />}
+                      {!done && (
+                        <ChevronRight
+                          size={18}
+                          color={colors.primaryForeground}
+                        />
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -794,7 +992,9 @@ export default function EmergencyScreen() {
 
         <Button variant="secondary" onPress={addVictim}>
           <Users size={16} color={colors.secondaryForeground} />
-          <Text className="text-sm font-medium text-secondary-foreground">Add another victim</Text>
+          <Text className="text-sm font-medium text-secondary-foreground">
+            Add another victim
+          </Text>
         </Button>
       </ScrollView>
     );
@@ -815,7 +1015,12 @@ export default function EmergencyScreen() {
             // nothing here depends on having visited the kit screen — time
             // to first compression outranks completeness of data capture.
             updateIncident({ procedureId: 'cpr_aed' });
-            setStage('guide');
+            if (!incident.ageBand) {
+              setPostAgeStage('guide');
+              setStage('age');
+            } else {
+              setStage('guide');
+            }
           }}
           onRecheck={() => {
             updateIncident({ breathing: '' });
@@ -864,22 +1069,36 @@ export default function EmergencyScreen() {
 
     const answerYesNo = (field: 'responsive' | 'breathing', value: string) => {
       updateIncident({ [field]: value });
-      void logTriageAnswer(incident, settings.realDataMode, field, value, logInstitutional, onSession);
+      void logTriageAnswer(
+        incident,
+        settings.realDataMode,
+        field,
+        value,
+        logInstitutional,
+        onSession,
+      );
       setTriageStep((s) => s + 1);
     };
 
     /* ---- Step 0: responsive ---- */
     if (triageStep === 0) {
       return (
-        <TriageStepShell step={triageStep}
+        <TriageStepShell
+          step={triageStep}
           title="Do they respond when you shout and tap them?"
           onSkip={() => answerYesNo('responsive', 'unsure')}
         >
           <Card>
             <CardContent className="flex-row gap-2">
-              {rowChoice('responsive', 'yes', 'Yes', false, () => answerYesNo('responsive', 'yes'))}
-              {rowChoice('responsive', 'no', 'No', true, () => answerYesNo('responsive', 'no'))}
-              {rowChoice('responsive', 'unsure', 'Unsure', false, () => answerYesNo('responsive', 'unsure'))}
+              {rowChoice('responsive', 'yes', 'Yes', false, () =>
+                answerYesNo('responsive', 'yes'),
+              )}
+              {rowChoice('responsive', 'no', 'No', true, () =>
+                answerYesNo('responsive', 'no'),
+              )}
+              {rowChoice('responsive', 'unsure', 'Unsure', false, () =>
+                answerYesNo('responsive', 'unsure'),
+              )}
             </CardContent>
           </Card>
         </TriageStepShell>
@@ -889,7 +1108,8 @@ export default function EmergencyScreen() {
     /* ---- Step 1: breathing ---- */
     if (triageStep === 1) {
       return (
-        <TriageStepShell step={triageStep}
+        <TriageStepShell
+          step={triageStep}
           title="Are they breathing normally?"
           subtitle="Occasional gasping is NOT normal breathing."
           onBack={() => setTriageStep(0)}
@@ -897,9 +1117,15 @@ export default function EmergencyScreen() {
         >
           <Card>
             <CardContent className="flex-row gap-2">
-              {rowChoice('breathing', 'yes', 'Yes', false, () => answerYesNo('breathing', 'yes'))}
-              {rowChoice('breathing', 'no', 'No', true, () => answerYesNo('breathing', 'no'))}
-              {rowChoice('breathing', 'unsure', 'Unsure', false, () => answerYesNo('breathing', 'unsure'))}
+              {rowChoice('breathing', 'yes', 'Yes', false, () =>
+                answerYesNo('breathing', 'yes'),
+              )}
+              {rowChoice('breathing', 'no', 'No', true, () =>
+                answerYesNo('breathing', 'no'),
+              )}
+              {rowChoice('breathing', 'unsure', 'Unsure', false, () =>
+                answerYesNo('breathing', 'unsure'),
+              )}
             </CardContent>
           </Card>
         </TriageStepShell>
@@ -912,7 +1138,9 @@ export default function EmergencyScreen() {
     if (triageStep === 2) {
       const toggleInjury = (value: string) => {
         if (value === 'unknown') {
-          updateIncident({ injury: incident.injury.includes('unknown') ? [] : ['unknown'] });
+          updateIncident({
+            injury: incident.injury.includes('unknown') ? [] : ['unknown'],
+          });
           return;
         }
         const withoutUnknown = incident.injury.filter((c) => c !== 'unknown');
@@ -923,7 +1151,8 @@ export default function EmergencyScreen() {
       };
 
       return (
-        <TriageStepShell step={triageStep}
+        <TriageStepShell
+          step={triageStep}
           title="What do you see?"
           subtitle="Pick everything that applies — there can be more than one."
           onBack={() => setTriageStep(1)}
@@ -943,10 +1172,14 @@ export default function EmergencyScreen() {
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked }}
                     className={`flex-row items-center justify-between rounded-md border p-2.5 ${
-                      checked ? 'border-primary bg-primary/10' : 'border-border bg-card'
+                      checked
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card'
                     }`}
                   >
-                    <Text className={`text-sm ${checked ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                    <Text
+                      className={`text-sm ${checked ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
+                    >
                       {opt.label}
                     </Text>
                     {checked && <Check size={18} color={colors.primary} />}
@@ -955,13 +1188,75 @@ export default function EmergencyScreen() {
               })}
             </CardContent>
           </Card>
-          <Button size="lg" disabled={incident.injury.length === 0} onPress={afterTriage}>
-            <Text className="text-base font-medium text-primary-foreground">Next</Text>
+          <Button
+            size="lg"
+            disabled={incident.injury.length === 0}
+            onPress={afterTriage}
+          >
+            <Text className="text-base font-medium text-primary-foreground">
+              Next
+            </Text>
             <ChevronRight size={20} color={colors.primaryForeground} />
           </Button>
         </TriageStepShell>
       );
     }
+  }
+
+  /* --------------------------- Stage: age ---------------------------- */
+  // Only reached for choking/cpr_aed (see PROCEDURES_NEEDING_AGE_BAND) —
+  // the one place age actually changes which technique is correct. Every
+  // other procedure never routes here at all.
+  if (stage === 'age') {
+    const chooseAge = (band: string) => {
+      updateIncident({ ageBand: band });
+      void logTriageAnswer(
+        incident,
+        settings.realDataMode,
+        'ageBand',
+        band,
+        logInstitutional,
+        onSession,
+      );
+      setStage(postAgeStage);
+    };
+    return (
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
+        <View>
+          <Text className="text-2xl font-bold text-foreground">
+            About how old are they?
+          </Text>
+          <Text className="mt-2 text-sm text-muted-foreground">
+            {incident.procedureId === 'choking'
+              ? "Clearing a blocked airway is done differently for infants — this is the only place age changes what you're told to do."
+              : "Chest compressions are done differently for infants and children — this is the only place age changes what you're told to do."}
+          </Text>
+        </View>
+        <View className="gap-3">
+          {AGE_BANDS.slice(1, 4).map((band) => (
+            <Pressable
+              key={band}
+              onPress={() => chooseAge(band)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: incident.ageBand === band }}
+              className="rounded-md border border-border bg-card p-4"
+            >
+              <Text className="text-base font-medium text-foreground">
+                {band}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Button variant="secondary" onPress={() => chooseAge('Adult')}>
+          <Text className="text-sm font-medium text-secondary-foreground">
+            Not sure — use the adult technique
+          </Text>
+        </Button>
+      </ScrollView>
+    );
   }
 
   /* ------------------------ Stage: interview ------------------------ */
@@ -994,7 +1289,10 @@ export default function EmergencyScreen() {
    * (e.g. for an automatic dispatcher alert). */
   if (stage === 'hazards') {
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
         <Card elevated className="border-emergency">
           <CardContent className="gap-3">
             <View className="flex-row items-center gap-1.5">
@@ -1003,18 +1301,23 @@ export default function EmergencyScreen() {
                 Before you get close
               </Text>
             </View>
-            <Text className="text-2xl font-bold text-foreground">Your safety comes first</Text>
+            <Text className="text-2xl font-bold text-foreground">
+              Your safety comes first
+            </Text>
             <Text className="text-base leading-relaxed text-foreground">
-              If it isn&apos;t safe to approach — traffic, fire, electricity, gas, an unstable
-              structure, anything — stay back and wait for professionals. You can&apos;t help anyone
-              if you become a second victim. Use your own judgement; nobody knows this scene better
+              If it isn&apos;t safe to approach — traffic, fire, electricity,
+              gas, an unstable structure, anything — stay back and wait for
+              professionals. You can&apos;t help anyone if you become a second
+              victim. Use your own judgement; nobody knows this scene better
               than you do right now.
             </Text>
           </CardContent>
         </Card>
 
         <Button size="lg" onPress={() => setStage('kit')}>
-          <Text className="text-base font-medium text-primary-foreground">It&apos;s safe — continue</Text>
+          <Text className="text-base font-medium text-primary-foreground">
+            It&apos;s safe — continue
+          </Text>
           <ChevronRight size={20} color={colors.primaryForeground} />
         </Button>
       </ScrollView>
@@ -1024,19 +1327,26 @@ export default function EmergencyScreen() {
   /* --------------------------- Stage: kit --------------------------- */
   if (stage === 'kit') {
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-5 p-4 pb-10"
+      >
         <View>
-          <Text className="text-2xl font-bold text-foreground">What do you have to work with?</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            What do you have to work with?
+          </Text>
           <Text className="mt-2 text-sm text-muted-foreground">
-            Guidance is filtered to your actual equipment, so you are never told to use something you
-            do not have.
+            Guidance is filtered to your actual equipment, so you are never told
+            to use something you do not have.
           </Text>
         </View>
 
         <KitScanner
           context={incident.context ?? 'other'}
           selected={incident.kitItems}
-          onChange={(codes, source) => updateIncident({ kitItems: codes, kitSource: source })}
+          onChange={(codes, source) =>
+            updateIncident({ kitItems: codes, kitSource: source })
+          }
         />
 
         <Button
@@ -1067,11 +1377,15 @@ export default function EmergencyScreen() {
   /* -------------------------- Stage: guide -------------------------- */
   if (!procedure) {
     return (
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="p-4">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="p-4"
+      >
         <Card>
           <CardContent className="p-5">
             <Text className="text-sm text-muted-foreground">
-              No guidance matches those answers. Go back and review the triage questions.
+              No guidance matches those answers. Go back and review the triage
+              questions.
             </Text>
             <Button
               className="mt-3"
@@ -1090,8 +1404,12 @@ export default function EmergencyScreen() {
   }
 
   const addStep = (step: CompletedStep) => {
-    const existing = incident.completedSteps.filter((s) => s.index !== step.index);
-    updateIncident({ completedSteps: [...existing, step].sort((a, b) => a.index - b.index) });
+    const existing = incident.completedSteps.filter(
+      (s) => s.index !== step.index,
+    );
+    updateIncident({
+      completedSteps: [...existing, step].sort((a, b) => a.index - b.index),
+    });
     void logProcedureStep(
       incident,
       settings.realDataMode,
@@ -1131,7 +1449,10 @@ export default function EmergencyScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-5 p-4 pb-10"
+    >
       <ProcedureRunner
         procedure={procedure}
         kitItems={incident.kitItems}

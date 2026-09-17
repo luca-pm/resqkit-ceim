@@ -89,21 +89,24 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'gloves',
     name: 'Disposable gloves',
     purpose: 'Barrier protection for you and the injured person.',
-    howTo: 'Put them on before touching wounds or body fluids. Replace if torn.',
+    howTo:
+      'Put them on before touching wounds or body fluids. Replace if torn.',
     contexts: ['road', 'office', 'maritime', 'mountain'],
   },
   {
     code: 'pressure_bandage',
     name: 'Pressure bandage',
     purpose: 'Applies sustained pressure over a bleeding wound.',
-    howTo: 'Place the pad directly on the wound and wrap firmly, not so tight that the limb goes cold.',
+    howTo:
+      'Place the pad directly on the wound and wrap firmly, not so tight that the limb goes cold.',
     contexts: ['road', 'office', 'maritime', 'mountain'],
   },
   {
     code: 'sterile_gauze',
     name: 'Sterile gauze pads',
     purpose: 'Absorbent dressing placed directly on a wound.',
-    howTo: 'Stack pads over the wound and hold firm pressure. Add more on top; do not remove soaked ones.',
+    howTo:
+      'Stack pads over the wound and hold firm pressure. Add more on top; do not remove soaked ones.',
     contexts: ['road', 'office', 'maritime', 'mountain'],
   },
   {
@@ -139,7 +142,8 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'burn_dressing',
     name: 'Burn dressing or gel pad',
     purpose: 'Non-adherent cover for a cooled burn.',
-    howTo: 'Apply after cooling the burn with water. Do not use on top of dirt or clothing stuck to the skin.',
+    howTo:
+      'Apply after cooling the burn with water. Do not use on top of dirt or clothing stuck to the skin.',
     contexts: ['office', 'maritime', 'road'],
   },
   {
@@ -153,49 +157,56 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'scissors',
     name: 'Shears or scissors',
     purpose: 'Cutting dressings, tape or clothing away from a wound.',
-    howTo: 'Cut along seams where possible. Never cut through an embedded object.',
+    howTo:
+      'Cut along seams where possible. Never cut through an embedded object.',
     contexts: ['road', 'office', 'maritime', 'mountain'],
   },
   {
     code: 'cpr_shield',
     name: 'CPR face shield or pocket mask',
     purpose: 'Barrier for rescue breaths.',
-    howTo: 'Place over the mouth and nose. If you are untrained or unwilling, do compressions only.',
+    howTo:
+      'Place over the mouth and nose. If you are untrained or unwilling, do compressions only.',
     contexts: ['office', 'road', 'maritime'],
   },
   {
     code: 'aed',
     name: 'AED (defibrillator)',
     purpose: 'Analyses the heart rhythm and delivers a shock if advised.',
-    howTo: 'Switch it on and follow its spoken prompts. It will not shock unless a shock is needed.',
+    howTo:
+      'Switch it on and follow its spoken prompts. It will not shock unless a shock is needed.',
     contexts: ['office', 'maritime'],
   },
   {
     code: 'eyewash',
     name: 'Eyewash / saline',
     purpose: 'Flushing chemicals or debris from the eye.',
-    howTo: 'Irrigate from the inner corner outward for several minutes, keeping the eye open.',
+    howTo:
+      'Irrigate from the inner corner outward for several minutes, keeping the eye open.',
     contexts: ['office', 'maritime'],
   },
   {
     code: 'cold_pack',
     name: 'Instant cold pack',
     purpose: 'Reduces swelling in sprains and bruises.',
-    howTo: 'Wrap in cloth before contact with skin. Do not use on open wounds or burns.',
+    howTo:
+      'Wrap in cloth before contact with skin. Do not use on open wounds or burns.',
     contexts: ['office', 'mountain', 'road'],
   },
   {
     code: 'splint',
     name: 'Mouldable splint',
     purpose: 'Immobilises a suspected fracture.',
-    howTo: 'Shape it to support the limb in the position found. Pad it and secure above and below the injury.',
+    howTo:
+      'Shape it to support the limb in the position found. Pad it and secure above and below the injury.',
     contexts: ['mountain', 'office', 'road'],
   },
   {
     code: 'warning_triangle',
     name: 'Warning triangle',
     purpose: 'Makes the scene visible to other traffic.',
-    howTo: 'Place well back from the vehicle in the direction of oncoming traffic before you approach.',
+    howTo:
+      'Place well back from the vehicle in the direction of oncoming traffic before you approach.',
     contexts: ['road'],
   },
   {
@@ -209,7 +220,8 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'fire_extinguisher',
     name: 'Fire extinguisher',
     purpose: 'Small fire suppression only.',
-    howTo: 'Only attempt a small, contained fire with an escape route behind you. Otherwise withdraw.',
+    howTo:
+      'Only attempt a small, contained fire with an escape route behind you. Otherwise withdraw.',
     contexts: ['road', 'office', 'maritime'],
   },
   {
@@ -223,7 +235,8 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'throw_line',
     name: 'Throw line or ring buoy',
     purpose: 'Reaching a person in water without entering it.',
-    howTo: 'Throw past the person and pull it back into their reach. Do not enter the water yourself.',
+    howTo:
+      'Throw past the person and pull it back into their reach. Do not enter the water yourself.',
     contexts: ['maritime'],
   },
   {
@@ -244,13 +257,16 @@ export const KIT_ITEMS: KitItem[] = [
     code: 'headlamp',
     name: 'Headlamp or torch',
     purpose: 'Hands-free light and signalling.',
-    howTo: 'Use to work on the casualty and to mark your position for rescuers.',
+    howTo:
+      'Use to work on the casualty and to mark your position for rescuers.',
     contexts: ['mountain', 'maritime', 'road'],
   },
 ];
 
 export const kitItemsForContext = (context: ContextId): KitItem[] =>
-  KIT_ITEMS.filter((item) => item.contexts.includes(context === 'other' ? 'office' : context));
+  KIT_ITEMS.filter((item) =>
+    item.contexts.includes(context === 'other' ? 'office' : context),
+  );
 
 export const kitItemByCode = (code: string): KitItem | undefined =>
   KIT_ITEMS.find((item) => item.code === code);
@@ -275,7 +291,8 @@ export const HAZARDS: Hazard[] = [
     code: 'traffic',
     label: 'Moving traffic',
     family: 'Other',
-    warning: 'Make the scene visible and stay behind a barrier before approaching.',
+    warning:
+      'Make the scene visible and stay behind a barrier before approaching.',
     blocking: false,
     contexts: ['road'],
   },
@@ -291,7 +308,8 @@ export const HAZARDS: Hazard[] = [
     code: 'fuel_spill',
     label: 'Fuel or chemical spill',
     family: 'CBRNE',
-    warning: 'No ignition sources. Stay upwind and uphill. Do not walk through the spill.',
+    warning:
+      'No ignition sources. Stay upwind and uphill. Do not walk through the spill.',
     blocking: true,
     contexts: ['road', 'office', 'maritime', 'other'],
   },
@@ -299,7 +317,8 @@ export const HAZARDS: Hazard[] = [
     code: 'electrical',
     label: 'Electrical / high voltage',
     family: 'Structural',
-    warning: 'Assume cables are live. Keep well clear and wait for the utility or fire service.',
+    warning:
+      'Assume cables are live. Keep well clear and wait for the utility or fire service.',
     blocking: true,
     contexts: ['road', 'office', 'maritime', 'other'],
   },
@@ -324,7 +343,8 @@ export const HAZARDS: Hazard[] = [
     code: 'unstable_structure',
     label: 'Unstable structure or load',
     family: 'Structural',
-    warning: 'Do not enter or crawl under. Note the location for rescuers instead.',
+    warning:
+      'Do not enter or crawl under. Note the location for rescuers instead.',
     blocking: true,
     contexts: ['office', 'road', 'maritime', 'mountain', 'other'],
   },
@@ -332,7 +352,8 @@ export const HAZARDS: Hazard[] = [
     code: 'gas',
     label: 'Gas smell or confined space',
     family: 'CBRNE',
-    warning: 'Do not switch anything on or off. Ventilate if safe, evacuate, and do not enter confined spaces.',
+    warning:
+      'Do not switch anything on or off. Ventilate if safe, evacuate, and do not enter confined spaces.',
     blocking: true,
     contexts: ['office', 'maritime', 'other'],
   },
@@ -340,7 +361,8 @@ export const HAZARDS: Hazard[] = [
     code: 'exposure',
     label: 'Cold, heat or exposure',
     family: 'Environmental',
-    warning: 'Insulate from the ground and shelter from wind. Exposure worsens every other injury.',
+    warning:
+      'Insulate from the ground and shelter from wind. Exposure worsens every other injury.',
     blocking: false,
     contexts: ['mountain', 'maritime', 'road', 'other'],
   },
@@ -348,7 +370,8 @@ export const HAZARDS: Hazard[] = [
     code: 'rockfall',
     label: 'Rockfall, avalanche or steep drop',
     family: 'Environmental',
-    warning: 'Do not cross the hazard. Move to stable ground and mark your position.',
+    warning:
+      'Do not cross the hazard. Move to stable ground and mark your position.',
     blocking: true,
     contexts: ['mountain'],
   },
@@ -356,7 +379,8 @@ export const HAZARDS: Hazard[] = [
     code: 'aggression',
     label: 'Aggression or crowd',
     family: 'Other',
-    warning: 'Your safety first. Withdraw to a safe distance and let the dispatcher know.',
+    warning:
+      'Your safety first. Withdraw to a safe distance and let the dispatcher know.',
     blocking: false,
     contexts: ['road', 'office', 'maritime', 'mountain', 'other'],
   },
@@ -387,6 +411,20 @@ export interface ProcedureStep {
   metronomeBpm?: number;
   requiresItems?: string[];
   withoutItem?: string;
+  /**
+   * Overrides for this step's title/detail (and, for CPR, its compression
+   * rate) when the technique itself genuinely differs by age — not a
+   * general age-tailoring mechanism, just the two well-established cases
+   * where using the adult technique on an infant/child is the wrong advice
+   * (abdominal thrusts on an infant; two-handed compressions on an infant).
+   * Absent entries fall back to the step's own title/detail/metronomeBpm.
+   */
+  ageVariants?: Partial<
+    Record<
+      'infant' | 'child',
+      Pick<ProcedureStep, 'title' | 'detail' | 'metronomeBpm'>
+    >
+  >;
 }
 
 export interface Procedure {
@@ -433,6 +471,13 @@ export const PROCEDURES: Procedure[] = [
         detail:
           'Tilt the head back gently and lift the chin. Look, listen and feel for no more than 10 seconds. Occasional gasping is NOT normal breathing.',
         critical: true,
+        ageVariants: {
+          infant: {
+            title: 'Open the airway and check breathing',
+            detail:
+              "Tilt the head back only slightly — to a neutral position, not fully back — and lift the chin. Over-tilting can close an infant's airway. Look, listen and feel for no more than 10 seconds. Occasional gasping is NOT normal breathing.",
+          },
+        },
       },
       {
         title: 'Start chest compressions',
@@ -440,13 +485,26 @@ export const PROCEDURES: Procedure[] = [
           'Place the heel of one hand in the centre of the chest, the other hand on top. Push hard and fast, about 5–6 cm deep, letting the chest come all the way back up between compressions. Keep the rhythm of the metronome.',
         critical: true,
         metronomeBpm: 110,
+        ageVariants: {
+          infant: {
+            title: 'Start chest compressions (two fingers)',
+            detail:
+              'Use two fingers only, just below the nipple line. Push about 4 cm deep — roughly a third of the chest depth — letting the chest come all the way back up between compressions. Keep the rhythm of the metronome.',
+          },
+          child: {
+            title: 'Start chest compressions (one hand)',
+            detail:
+              "Place the heel of one hand in the centre of the chest. Push about 5 cm deep — roughly a third of the chest depth — letting the chest come all the way back up between compressions. Use two hands like an adult if one hand isn't enough for their size. Keep the rhythm of the metronome.",
+          },
+        },
       },
       {
         title: 'Send someone for the AED',
         detail:
           'If a defibrillator is nearby, send another person to fetch it while you keep compressing. Do not stop compressions to look for it yourself.',
         requiresItems: ['aed'],
-        withoutItem: 'No AED here. Keep compressing without interruption until help arrives.',
+        withoutItem:
+          'No AED here. Keep compressing without interruption until help arrives.',
       },
       {
         title: 'Use the AED as soon as it arrives',
@@ -459,7 +517,8 @@ export const PROCEDURES: Procedure[] = [
         detail:
           'If you are trained and have a barrier, give 2 breaths after every 30 compressions. If not, compression-only CPR is the correct choice — do not stop.',
         requiresItems: ['cpr_shield'],
-        withoutItem: 'No barrier available. Do compression-only CPR. This is correct and effective.',
+        withoutItem:
+          'No barrier available. Do compression-only CPR. This is correct and effective.',
       },
       {
         title: 'Keep going until relieved',
@@ -479,9 +538,11 @@ export const PROCEDURES: Procedure[] = [
     steps: [
       {
         title: 'Protect yourself',
-        detail: 'Put on gloves if you have them. If not, use any clean barrier such as a plastic bag.',
+        detail:
+          'Put on gloves if you have them. If not, use any clean barrier such as a plastic bag.',
         requiresItems: ['gloves'],
-        withoutItem: 'No gloves. Use a plastic bag or clean cloth as a barrier and wash thoroughly afterwards.',
+        withoutItem:
+          'No gloves. Use a plastic bag or clean cloth as a barrier and wash thoroughly afterwards.',
       },
       {
         title: 'Apply direct pressure now',
@@ -489,7 +550,8 @@ export const PROCEDURES: Procedure[] = [
           'Press firmly straight onto the wound with a gauze pad or the cleanest cloth available. Do not stop to look for better materials.',
         critical: true,
         requiresItems: ['sterile_gauze'],
-        withoutItem: 'Use the cleanest available cloth or your gloved hand and press hard and continuously.',
+        withoutItem:
+          'Use the cleanest available cloth or your gloved hand and press hard and continuously.',
       },
       {
         title: 'Add a pressure bandage',
@@ -500,7 +562,8 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         title: 'Raise the limb if possible',
-        detail: 'If the wound is on an arm or leg and there is no suspected fracture, raise it above chest level.',
+        detail:
+          'If the wound is on an arm or leg and there is no suspected fracture, raise it above chest level.',
       },
       {
         title: 'Tourniquet only if bleeding will not stop',
@@ -516,11 +579,13 @@ export const PROCEDURES: Procedure[] = [
         detail:
           'Lay the person down, keep them still, cover them to prevent heat loss, and keep talking to them until help arrives.',
         requiresItems: ['thermal_blanket'],
-        withoutItem: 'Use coats or blankets to insulate them from the ground and the air.',
+        withoutItem:
+          'Use coats or blankets to insulate them from the ground and the air.',
       },
       {
         title: 'Hand over the time of the tourniquet',
-        detail: 'Tell the arriving crew exactly what you did and when. The timing changes their treatment.',
+        detail:
+          'Tell the arriving crew exactly what you did and when. The timing changes their treatment.',
         critical: true,
       },
     ],
@@ -544,12 +609,29 @@ export const PROCEDURES: Procedure[] = [
         detail:
           'Lean them forward, support the chest with one hand, and strike firmly between the shoulder blades with the heel of your other hand.',
         critical: true,
+        ageVariants: {
+          infant: {
+            title: 'Give up to 5 back blows',
+            detail:
+              'Turn them face-down along your forearm, head lower than the chest, supporting the head and jaw. Strike firmly between the shoulder blades with the heel of your hand, up to 5 times.',
+          },
+        },
       },
       {
         title: 'Give up to 5 abdominal thrusts (the Heimlich manoeuvre)',
         detail:
           'Stand behind them, make a fist with your thumb tucked in — so it forms a "J" shape — and place it just above the navel. Grasp it with your other hand and pull sharply inwards and upwards.',
         critical: true,
+        // Never do abdominal thrusts on an infant — their organs sit higher
+        // and are far more exposed to injury from this technique.
+        ageVariants: {
+          infant: {
+            title:
+              'Give up to 5 chest thrusts instead (never abdominal thrusts)',
+            detail:
+              'Turn them face-up along your forearm, head lower than the chest, supporting the head. Using two fingers, push sharply on the lower half of the breastbone — the same spot as CPR compressions — up to 5 times.',
+          },
+        },
       },
       {
         title: 'Alternate and call 112',
@@ -559,12 +641,14 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         title: 'If they become unresponsive',
-        detail: 'Lower them to the ground carefully and switch immediately to CPR.',
+        detail:
+          'Lower them to the ground carefully and switch immediately to CPR.',
         critical: true,
       },
       {
         title: 'Always advise medical review after thrusts',
-        detail: 'Abdominal thrusts can cause internal injury. They must be checked by a clinician even if they recover.',
+        detail:
+          'Abdominal thrusts can cause internal injury. They must be checked by a clinician even if they recover.',
       },
     ],
   },
@@ -572,15 +656,17 @@ export const PROCEDURES: Procedure[] = [
     id: 'burns',
     name: 'Burns and scalds',
     shortLabel: 'Burns',
-    whenToUse: 'Heat, steam, hot liquid, friction or chemical damage to the skin.',
+    whenToUse:
+      'Heat, steam, hot liquid, friction or chemical damage to the skin.',
     clinicalReview: 'pending',
     sources: ['AR', 'MVP'],
     escalation:
-      'Call 112 for burns larger than the person\'s palm, any burn to face, hands, feet or genitals, any electrical or chemical burn, or if breathing sounds affected.',
+      "Call 112 for burns larger than the person's palm, any burn to face, hands, feet or genitals, any electrical or chemical burn, or if breathing sounds affected.",
     steps: [
       {
         title: 'Stop the burning process',
-        detail: 'Remove the person from the heat source. Only tackle a fire if it is small and you have an escape route.',
+        detail:
+          'Remove the person from the heat source. Only tackle a fire if it is small and you have an escape route.',
         critical: true,
       },
       {
@@ -594,18 +680,21 @@ export const PROCEDURES: Procedure[] = [
         detail:
           'Flush continuously with water and avoid contaminating yourself. For the eye, irrigate from the inner corner outward and keep the eye open.',
         requiresItems: ['eyewash'],
-        withoutItem: 'Use clean running water and continue irrigating on the way to help.',
+        withoutItem:
+          'Use clean running water and continue irrigating on the way to help.',
       },
       {
         title: 'Cover loosely',
         detail:
           'Apply a non-adherent burn dressing or cling film laid on lengthways. Do not wrap tightly and do not apply creams, butter or ointments.',
         requiresItems: ['burn_dressing'],
-        withoutItem: 'Cling film or a clean, dry, non-fluffy cloth laid loosely over the burn.',
+        withoutItem:
+          'Cling film or a clean, dry, non-fluffy cloth laid loosely over the burn.',
       },
       {
         title: 'Keep the person warm',
-        detail: 'Cooling a large burn cools the whole body. Cover unburned areas to prevent hypothermia.',
+        detail:
+          'Cooling a large burn cools the whole body. Cover unburned areas to prevent hypothermia.',
         requiresItems: ['thermal_blanket'],
         withoutItem: 'Cover unburned areas with any blanket or coat.',
       },
@@ -615,13 +704,15 @@ export const PROCEDURES: Procedure[] = [
     id: 'fracture',
     name: 'Suspected fracture',
     shortLabel: 'Fracture',
-    whenToUse: 'Deformity, severe pain, inability to bear weight or use the limb.',
+    whenToUse:
+      'Deformity, severe pain, inability to bear weight or use the limb.',
     clinicalReview: 'pending',
     sources: ['AR', 'MVP'],
     steps: [
       {
         title: 'Do not straighten the limb',
-        detail: 'Support it in the position you found it. Realigning is not a bystander task.',
+        detail:
+          'Support it in the position you found it. Realigning is not a bystander task.',
         critical: true,
       },
       {
@@ -632,28 +723,34 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         title: 'Immobilise with a splint',
-        detail: 'Pad the splint, shape it to the limb as found, and secure above and below the injury — never over it.',
+        detail:
+          'Pad the splint, shape it to the limb as found, and secure above and below the injury — never over it.',
         requiresItems: ['splint'],
-        withoutItem: 'Improvise with a rolled magazine, trekking pole or padded board, or support the limb by hand.',
+        withoutItem:
+          'Improvise with a rolled magazine, trekking pole or padded board, or support the limb by hand.',
       },
       {
         title: 'Support with a sling',
-        detail: 'For an arm, a triangular bandage sling reduces movement and pain considerably.',
+        detail:
+          'For an arm, a triangular bandage sling reduces movement and pain considerably.',
         requiresItems: ['triangular_bandage'],
         withoutItem: 'Support the arm against the body using a jacket or belt.',
       },
       {
         title: 'Cool and elevate if there is no open wound',
-        detail: 'A wrapped cold pack reduces swelling. Never place ice directly on skin.',
+        detail:
+          'A wrapped cold pack reduces swelling. Never place ice directly on skin.',
         requiresItems: ['cold_pack'],
-        withoutItem: 'Skip cooling. Focus on immobilising and keeping the person still.',
+        withoutItem:
+          'Skip cooling. Focus on immobilising and keeping the person still.',
       },
       {
         title: 'Cover any open fracture',
         detail:
           'If bone is exposed, cover it with a sterile dressing without pushing anything back in, and tell the dispatcher it is an open fracture.',
         requiresItems: ['sterile_gauze'],
-        withoutItem: 'Cover with the cleanest available cloth and do not apply pressure onto the bone.',
+        withoutItem:
+          'Cover with the cleanest available cloth and do not apply pressure onto the bone.',
       },
     ],
   },
@@ -661,13 +758,15 @@ export const PROCEDURES: Procedure[] = [
     id: 'hypothermia',
     name: 'Hypothermia and cold exposure',
     shortLabel: 'Hypothermia',
-    whenToUse: 'Shivering, confusion, slurred speech, clumsiness or cold pale skin.',
+    whenToUse:
+      'Shivering, confusion, slurred speech, clumsiness or cold pale skin.',
     clinicalReview: 'pending',
     sources: ['AR', 'MVP'],
     steps: [
       {
         title: 'Get out of the wind and off the ground',
-        detail: 'Ground contact and wind drain heat fastest. Shelter first, then everything else.',
+        detail:
+          'Ground contact and wind drain heat fastest. Shelter first, then everything else.',
         critical: true,
       },
       {
@@ -678,26 +777,32 @@ export const PROCEDURES: Procedure[] = [
       },
       {
         title: 'Replace wet layers and insulate',
-        detail: 'Remove wet clothing if you can do it without chilling them further, then wrap them fully including the head.',
+        detail:
+          'Remove wet clothing if you can do it without chilling them further, then wrap them fully including the head.',
         requiresItems: ['thermal_blanket'],
-        withoutItem: 'Use dry spare clothing, sleeping bags or any dry insulating material.',
+        withoutItem:
+          'Use dry spare clothing, sleeping bags or any dry insulating material.',
       },
       {
         title: 'Use a shelter or bivvy bag',
-        detail: 'Enclose the person to trap warm air. Add a second person inside for body heat if conditions allow.',
+        detail:
+          'Enclose the person to trap warm air. Add a second person inside for body heat if conditions allow.',
         requiresItems: ['bivvy_bag'],
-        withoutItem: 'Improvise a windbreak and share body heat with dry insulation between you and the ground.',
+        withoutItem:
+          'Improvise a windbreak and share body heat with dry insulation between you and the ground.',
       },
       {
         title: 'Warm drinks only if fully alert',
-        detail: 'Never give anything by mouth to a drowsy or confused person. No alcohol.',
+        detail:
+          'Never give anything by mouth to a drowsy or confused person. No alcohol.',
       },
       {
         title: 'Signal your position',
         detail:
           'Give rescuers a fixed, findable position. Six whistle blasts or light flashes per minute is the recognised distress signal.',
         requiresItems: ['whistle'],
-        withoutItem: 'Use a torch, bright clothing or a phone screen to mark your position.',
+        withoutItem:
+          'Use a torch, bright clothing or a phone screen to mark your position.',
       },
     ],
   },
@@ -705,6 +810,39 @@ export const PROCEDURES: Procedure[] = [
 
 export const procedureById = (id: string): Procedure | undefined =>
   PROCEDURES.find((p) => p.id === id);
+
+/** The two procedures with a real, well-established age-specific technique
+ * difference — not a general age-tailoring mechanism, see ProcedureStep's
+ * ageVariants doc comment. Used to decide whether the wizard needs to ask
+ * about age at all. */
+export const PROCEDURES_NEEDING_AGE_BAND = ['choking', 'cpr_aed'];
+
+/** Maps the wizard's free-text ageBand label (see AGE_BANDS in emergency.tsx)
+ * onto the narrower set a procedure's ageVariants key on. Anything not
+ * recognised as infant/child falls back to the adult (base) technique —
+ * the safer default when age is unknown, since abdominal thrusts and
+ * two-handed CPR are the ones actually contraindicated on an infant, not
+ * the other way round. */
+const normalizeAgeBand = (ageBand?: string): 'infant' | 'child' | undefined => {
+  if (ageBand === 'Infant (under 1)') return 'infant';
+  if (ageBand === 'Child') return 'child';
+  return undefined;
+};
+
+/** Applies age-specific technique overrides to a procedure's steps, where
+ * they exist. Every other procedure (and every step without ageVariants)
+ * passes through unchanged. */
+export const resolveProcedureSteps = (
+  procedure: Procedure,
+  ageBand?: string,
+): ProcedureStep[] => {
+  const key = normalizeAgeBand(ageBand);
+  if (!key) return procedure.steps;
+  return procedure.steps.map((step) => {
+    const variant = step.ageVariants?.[key];
+    return variant ? { ...step, ...variant } : step;
+  });
+};
 
 /**
  * A bystander can see several problems on the same victim at once (a burn
@@ -716,7 +854,15 @@ export const procedureById = (id: string): Procedure | undefined =>
  * rest). Deterministic, same guarantee as routeProcedure() itself: no model
  * is ever involved in picking it.
  */
-const INJURY_PRIORITY = ['choking', 'bleeding', 'chest', 'head_spine', 'burn', 'fracture', 'cold'];
+const INJURY_PRIORITY = [
+  'choking',
+  'bleeding',
+  'chest',
+  'head_spine',
+  'burn',
+  'fracture',
+  'cold',
+];
 
 /** Picks the single most urgent entry from a multi-select injury list. Falls
  * back to whatever was selected first if none match the known priority
@@ -738,7 +884,10 @@ export const routeProcedure = (triage: {
   breathing?: string;
   injury?: string[];
 }): string => {
-  if (triage.breathing === 'no' || (triage.responsive === 'no' && triage.breathing !== 'yes')) {
+  if (
+    triage.breathing === 'no' ||
+    (triage.responsive === 'no' && triage.breathing !== 'yes')
+  ) {
     return 'cpr_aed';
   }
   switch (primaryInjury(triage.injury)) {
@@ -786,13 +935,21 @@ export const victimUrgencyRank = (v: {
 
 /** Sorts victims most-urgent-first; ties keep their original (add) order. */
 export const rankVictims = <
-  T extends { responsive?: string; breathing?: string; injury?: string[]; chokingFlag?: string; bleedingFlag?: string },
+  T extends {
+    responsive?: string;
+    breathing?: string;
+    injury?: string[];
+    chokingFlag?: string;
+    bleedingFlag?: string;
+  },
 >(
   victims: T[],
 ): T[] =>
   victims
     .map((v, i) => ({ v, i }))
-    .sort((a, b) => victimUrgencyRank(a.v) - victimUrgencyRank(b.v) || a.i - b.i)
+    .sort(
+      (a, b) => victimUrgencyRank(a.v) - victimUrgencyRank(b.v) || a.i - b.i,
+    )
     .map(({ v }) => v);
 
 export const INJURY_OPTIONS = [
@@ -833,8 +990,10 @@ export const OBLIGATIONS: Obligation[] = [
       'eCall is fitted to new passenger car and light-duty models approved for manufacture after 31 March 2018 and places a free 112 call automatically or manually.',
     detail:
       'The in-vehicle system transmits a Minimum Set of Data including exact location, time of the accident, vehicle identification number and direction of travel. It is dormant until triggered, the data is limited to what is needed, and it is not stored longer than necessary. Third-party service eCall systems that add services require explicit consent for personal data processing.',
-    instrument: 'Regulation (EU) 2015/758; Commission Delegated Regulation (EU) No 305/2013; Decision 585/2014',
-    articles: 'Type-approval requirements; PSAP infrastructure specifications (EN 16072:2022, EN 16062:2023)',
+    instrument:
+      'Regulation (EU) 2015/758; Commission Delegated Regulation (EU) No 305/2013; Decision 585/2014',
+    articles:
+      'Type-approval requirements; PSAP infrastructure specifications (EN 16072:2022, EN 16062:2023)',
     jurisdiction: 'EU',
     sourceDoc: 'EU_REG',
     lastVerified: '2026-08-12',
@@ -847,7 +1006,8 @@ export const OBLIGATIONS: Obligation[] = [
       'Member States must ensure caller location information is available to the authority handling 112 calls.',
     detail:
       'The European Electronic Communications Code defines emergency communication as a communication between an end-user and a Public Safety Answering Point to request and receive emergency relief. Delegated Regulation (EU) 2023/444 supplements it with caller location solutions, access for end-users with disabilities, and routing to the most appropriate PSAP, including the migration to packet-switched technologies such as VoLTE, VoNR and VoWiFi.',
-    instrument: 'Directive (EU) 2018/1972 (EECC); Commission Delegated Regulation (EU) 2023/444',
+    instrument:
+      'Directive (EU) 2018/1972 (EECC); Commission Delegated Regulation (EU) 2023/444',
     articles: 'Article 109',
     jurisdiction: 'EU / Romania',
     sourceDoc: 'EU_REG',
@@ -856,12 +1016,14 @@ export const OBLIGATIONS: Obligation[] = [
   },
   {
     id: 'handset_location',
-    title: 'Your phone must be able to provide Wi-Fi and satellite location for emergencies',
+    title:
+      'Your phone must be able to provide Wi-Fi and satellite location for emergencies',
     summary:
       'Handheld mobile telephones must support Wi-Fi and GNSS location compatible with Galileo for emergency communications.',
     detail:
       'This requirement under the Radio Equipment Directive significantly improves location accuracy for emergency calls. It is the reason ResQKit does not need to transmit your position to the emergency service itself — the handset and network deliver caller location under this framework.',
-    instrument: 'Directive 2014/53/EU (RED); Commission Delegated Regulation (EU) 2019/320',
+    instrument:
+      'Directive 2014/53/EU (RED); Commission Delegated Regulation (EU) 2019/320',
     articles: 'Essential requirements for handheld mobile telephones',
     jurisdiction: 'EU',
     sourceDoc: 'EU_REG',
@@ -913,7 +1075,8 @@ export const OBLIGATIONS: Obligation[] = [
   {
     id: 'gdpr_rights',
     title: 'Your rights over the data in this app',
-    summary: 'Access, rectification, erasure and restriction of processing are enforceable rights.',
+    summary:
+      'Access, rectification, erasure and restriction of processing are enforceable rights.',
     detail:
       'ResQKit implements these directly: you can review the incident record, correct your Safety Profile, withdraw consent, and delete everything from inside the app without contacting anyone.',
     instrument: 'Regulation (EU) 2016/679 (GDPR)',
@@ -954,7 +1117,8 @@ export const OBLIGATIONS: Obligation[] = [
   {
     id: 'civil_protection',
     title: 'EU Civil Protection Mechanism',
-    summary: 'Provides emergency support in response to exceptional crises or disasters within Member States.',
+    summary:
+      'Provides emergency support in response to exceptional crises or disasters within Member States.',
     detail:
       'It coordinates assistance and uses the Common Emergency Communication and Information System (CECIS) for real-time information exchange between participating states.',
     instrument: 'EU Civil Protection Mechanism',
@@ -988,18 +1152,15 @@ export const OBLIGATIONS: Obligation[] = [
 export const PENDING_VERIFICATION: { topic: string; note: string }[] = [
   {
     topic: 'Romanian national implementing rules',
-    note:
-      'The research baseline establishes that alignment with Romanian national rules and interpretations for emergency and medical assistance applications is required, but no verified article-level Romanian source has been added to this content pack yet. Nothing is shown rather than an inference.',
+    note: 'The research baseline establishes that alignment with Romanian national rules and interpretations for emergency and medical assistance applications is required, but no verified article-level Romanian source has been added to this content pack yet. Nothing is shown rather than an inference.',
   },
   {
     topic: 'Mandatory kit contents by country',
-    note:
-      'Statutory minimum contents for vehicle, workplace, maritime and mountain kits are country-specific and not yet verified in this pack. Kit contents in the app are descriptive, not a legal compliance checklist.',
+    note: 'Statutory minimum contents for vehicle, workplace, maritime and mountain kits are country-specific and not yet verified in this pack. Kit contents in the app are descriptive, not a legal compliance checklist.',
   },
   {
     topic: 'Duty-to-assist and reporting duties',
-    note:
-      'Any duty to assist, duty to report, or protection-from-liability provision must be cited from primary national law before it appears here.',
+    note: 'Any duty to assist, duty to report, or protection-from-liability provision must be cited from primary national law before it appears here.',
   },
 ];
 
