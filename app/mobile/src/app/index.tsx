@@ -5,9 +5,17 @@
  * else is secondary. The emergency entry point does not gate on login: a
  * bystander must never be blocked by an auth screen at a crash site.
  */
-import React from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Backpack,
   ChevronRight,
@@ -24,16 +32,39 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/toast';
 import { callEmergencyServices } from '@/components/AppShell';
+import HomeAIButton from '@/components/HomeAIButton';
 import { useIncident } from '@/contexts/IncidentContext';
+import { PROCEDURES } from '@/lib/knowledge';
 import { terminateInstitutionalSession } from '@/lib/institutionalActions';
 import { profileHasHealthData } from '@/lib/storage';
 import { useTokenColors } from '@/lib/tokenColors';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { consent, profile, incident, startIncident, settings, logInstitutional, closeIncident } =
-    useIncident();
+  const {
+    consent,
+    profile,
+    incident,
+    startIncident,
+    settings,
+    logInstitutional,
+    closeIncident,
+  } = useIncident();
   const colors = useTokenColors();
+  const [search, setSearch] = useState('');
+
+  // Real filtering, not decorative — searches the same procedures Learn &
+  // practise shows, so a result always lands somewhere meaningful.
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return PROCEDURES.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.shortLabel.toLowerCase().includes(q) ||
+        p.whenToUse.toLowerCase().includes(q),
+    ).slice(0, 5);
+  }, [search]);
 
   const beginIncident = () => {
     if (!consent.disclaimerAcknowledged) {
@@ -64,7 +95,11 @@ export default function HomeScreen() {
           text: keeps ? 'End incident' : 'End and delete',
           style: 'destructive',
           onPress: () => {
-            void terminateInstitutionalSession(incident, settings.realDataMode, logInstitutional);
+            void terminateInstitutionalSession(
+              incident,
+              settings.realDataMode,
+              logInstitutional,
+            );
             closeIncident();
             toast.success('Incident closed. You can start a new one.');
           },
@@ -103,92 +138,180 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-6 p-4 pb-10">
-      <View className="rounded-lg border border-emergency/30 bg-emergency/5 p-5">
-        <Text className="text-sm font-semibold uppercase tracking-wide text-emergency">
-          If someone is hurt, call first
-        </Text>
-        <Text className="mt-2 text-2xl font-bold text-foreground">
-          Call 112 before anything else
-        </Text>
-        <Text className="mt-2 text-sm text-muted-foreground">
-          ResQKit does not contact emergency services and does not send your location to anyone. Your
-          phone and network deliver caller location to the emergency service under EU rules.
-        </Text>
-        <View className="mt-4 gap-2">
-          <Button size="lg" variant="emergency" onPress={callEmergencyServices}>
-            <Phone size={20} color={colors.emergencyForeground} />
-            <Text className="text-base font-semibold text-emergency-foreground">Call 112</Text>
-          </Button>
-          <Button size="lg" variant="secondary" onPress={beginIncident}>
-            <Siren size={20} color={colors.secondaryForeground} />
-            <Text className="text-base font-medium text-secondary-foreground">
-              {incident ? 'Resume incident' : 'Start guided help'}
-            </Text>
-          </Button>
-        </View>
-      </View>
-
-      {incident && (
-        <Card elevated className="border-primary/40">
-          <CardContent className="flex-row items-center justify-between gap-3">
-            <View className="flex-1 flex-row items-start gap-2">
-              <Clock size={16} color={colors.primary} style={{ marginTop: 2 }} />
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground">Incident in progress</Text>
-                <Text className="text-xs text-muted-foreground">
-                  {`Started ${new Date(incident.startedAt).toLocaleTimeString()} · kept on this device`}
-                </Text>
-              </View>
-            </View>
-            <View className="gap-2">
-              <Button size="sm" onPress={() => router.push('/emergency')}>
-                Continue
-              </Button>
-              <Button size="sm" variant="outline" onPress={endIncident}>
-                End incident
-              </Button>
-            </View>
-          </CardContent>
-        </Card>
-      )}
-
-      <View>
-        <Text className="mb-3 text-xl font-bold text-foreground">
-          Prepare now, so you don&apos;t improvise later
-        </Text>
-        <View className="gap-3">
-          {shortcuts.map((item) => (
-            <Pressable key={item.to} onPress={() => router.push(item.to)}>
-              <Card>
-                <CardContent className="flex-row items-start gap-3">
-                  <View className="h-10 w-10 items-center justify-center rounded-md bg-accent">
-                    <item.icon size={20} color={colors.accentForeground} />
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <Text className="font-semibold text-foreground">{item.title}</Text>
-                      <ChevronRight size={16} color={colors.mutedForeground} />
-                    </View>
-                    <Text className="mt-0.5 text-sm text-muted-foreground">{item.description}</Text>
-                  </View>
-                </CardContent>
-              </Card>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View className="rounded-lg border border-border bg-card p-4">
-        <View className="flex-row items-start gap-2">
-          <ShieldCheck size={16} color={colors.primary} style={{ marginTop: 2 }} />
-          <Text className="flex-1 text-sm text-card-foreground">
-            <Text className="font-semibold">Local-first by design.</Text> Your Safety Profile and the
-            incident record stay on this device. Camera frames are analysed for object recognition
-            only and are never stored or uploaded as images.
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="gap-6 p-4 pb-10"
+      >
+        <View className="rounded-lg border border-emergency/30 bg-emergency/5 p-5">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-emergency">
+            If someone is hurt, call first
           </Text>
+          <Text className="mt-2 text-2xl font-bold text-foreground">
+            Call 112 before anything else
+          </Text>
+          <Text className="mt-2 text-sm text-muted-foreground">
+            ResQKit does not contact emergency services and does not send your
+            location to anyone. Your phone and network deliver caller location
+            to the emergency service under EU rules.
+          </Text>
+          <View className="mt-4 gap-2">
+            <Button
+              size="lg"
+              variant="emergency"
+              onPress={callEmergencyServices}
+            >
+              <Phone size={20} color={colors.emergencyForeground} />
+              <Text className="text-base font-semibold text-emergency-foreground">
+                Call 112
+              </Text>
+            </Button>
+            <Button size="lg" variant="secondary" onPress={beginIncident}>
+              <Siren size={20} color={colors.secondaryForeground} />
+              <Text className="text-base font-medium text-secondary-foreground">
+                {incident ? 'Resume incident' : 'Start guided help'}
+              </Text>
+            </Button>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {incident && (
+          <Card elevated className="border-primary/40">
+            <CardContent className="flex-row items-center justify-between gap-3">
+              <View className="flex-1 flex-row items-start gap-2">
+                <Clock
+                  size={16}
+                  color={colors.primary}
+                  style={{ marginTop: 2 }}
+                />
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">
+                    Incident in progress
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    {`Started ${new Date(incident.startedAt).toLocaleTimeString()} · kept on this device`}
+                  </Text>
+                </View>
+              </View>
+              <View className="gap-2">
+                <Button size="sm" onPress={() => router.push('/emergency')}>
+                  Continue
+                </Button>
+                <Button size="sm" variant="outline" onPress={endIncident}>
+                  End incident
+                </Button>
+              </View>
+            </CardContent>
+          </Card>
+        )}
+
+        <View>
+          {/* Search — a literal port of Alexandra's SearchBar (visual spec:
+            src/components/input/searchBar.styles.js), wired to real
+            filtering over PROCEDURES (her own SearchBar isn't connected to
+            anything either — this one actually works). */}
+          <View className="mb-3 h-14 flex-row items-center gap-2 rounded-md border border-border bg-card px-4">
+            <MaterialCommunityIcons
+              name="magnify"
+              size={22}
+              color={colors.mutedForeground}
+            />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search first-aid guides…"
+              placeholderTextColor={colors.mutedForeground}
+              className="flex-1 text-base text-foreground"
+            />
+          </View>
+          {search.trim() !== '' && (
+            <View className="mb-3 gap-2">
+              {searchResults.length === 0 ? (
+                <Text className="text-sm text-muted-foreground">
+                  No guides match &quot;{search}&quot;.
+                </Text>
+              ) : (
+                searchResults.map((proc) => (
+                  <Pressable
+                    key={proc.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/learn',
+                        params: { openId: proc.id },
+                      })
+                    }
+                  >
+                    <Card>
+                      <CardContent className="flex-row items-center justify-between gap-2">
+                        <View className="flex-1">
+                          <Text className="font-semibold text-foreground">
+                            {proc.name}
+                          </Text>
+                          <Text className="mt-0.5 text-xs text-muted-foreground">
+                            {proc.shortLabel}
+                          </Text>
+                        </View>
+                        <ChevronRight
+                          size={16}
+                          color={colors.mutedForeground}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Pressable>
+                ))
+              )}
+            </View>
+          )}
+
+          <Text className="mb-3 text-xl font-bold text-foreground">
+            Prepare now, so you don&apos;t improvise later
+          </Text>
+          <View className="gap-3">
+            {shortcuts.map((item) => (
+              <Pressable key={item.to} onPress={() => router.push(item.to)}>
+                <Card>
+                  <CardContent className="flex-row items-start gap-3">
+                    <View className="h-10 w-10 items-center justify-center rounded-md bg-accent">
+                      <item.icon size={20} color={colors.accentForeground} />
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between gap-2">
+                        <Text className="font-semibold text-foreground">
+                          {item.title}
+                        </Text>
+                        <ChevronRight
+                          size={16}
+                          color={colors.mutedForeground}
+                        />
+                      </View>
+                      <Text className="mt-0.5 text-sm text-muted-foreground">
+                        {item.description}
+                      </Text>
+                    </View>
+                  </CardContent>
+                </Card>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View className="rounded-lg border border-border bg-card p-4">
+          <View className="flex-row items-start gap-2">
+            <ShieldCheck
+              size={16}
+              color={colors.primary}
+              style={{ marginTop: 2 }}
+            />
+            <Text className="flex-1 text-sm text-card-foreground">
+              <Text className="font-semibold">Local-first by design.</Text> Your
+              Safety Profile and the incident record stay on this device. Camera
+              frames are analysed for object recognition only and are never
+              stored or uploaded as images.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+      <HomeAIButton />
+    </View>
   );
 }

@@ -7,6 +7,7 @@
  */
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { ChevronDown, ChevronUp, GraduationCap } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui/badge';
@@ -16,19 +17,39 @@ import { PROCEDURES } from '@/lib/knowledge';
 import { useTokenColors } from '@/lib/tokenColors';
 
 export default function LearnScreen() {
-  const [openId, setOpenId] = useState<string | null>(null);
+  // Optional deep-link from Home's search — e.g. /learn?openId=cpr_aed
+  // pre-expands that procedure. Absent in every other entry point, so this
+  // is additive: normal tab navigation still lands with nothing open.
+  const { openId: openIdParam } = useLocalSearchParams<{ openId?: string }>();
+  const [openId, setOpenId] = useState<string | null>(openIdParam ?? null);
   const colors = useTokenColors();
 
+  // Tab screens stay mounted in the background (expo-router's Tabs), so a
+  // second search hit while this tab is already alive needs to re-sync — the
+  // useState initializer above only fires on first mount. Adjusting state
+  // during render (rather than in an effect) is the documented pattern for
+  // "reset state when a prop changes": https://react.dev/learn/you-might-not-need-an-effect
+  const [lastOpenIdParam, setLastOpenIdParam] = useState(openIdParam);
+  if (openIdParam !== lastOpenIdParam) {
+    setLastOpenIdParam(openIdParam);
+    if (openIdParam) setOpenId(openIdParam);
+  }
+
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-5 p-4 pb-10">
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-5 p-4 pb-10"
+    >
       <View>
         <View className="flex-row items-center gap-2">
           <GraduationCap size={22} color={colors.primary} />
-          <Text className="text-2xl font-bold text-foreground">Learn &amp; practise</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            Learn &amp; practise
+          </Text>
         </View>
         <Text className="mt-2 text-sm text-muted-foreground">
-          Read these now, while nothing is happening. These are the exact steps ResQKit will show you
-          during an incident.
+          Read these now, while nothing is happening. These are the exact steps
+          ResQKit will show you during an incident.
         </Text>
       </View>
 
@@ -40,7 +61,9 @@ export default function LearnScreen() {
               <Pressable onPress={() => setOpenId(open ? null : proc.id)}>
                 <CardContent className="flex-row items-center justify-between gap-2">
                   <View className="flex-1">
-                    <Text className="font-semibold text-foreground">{proc.name}</Text>
+                    <Text className="font-semibold text-foreground">
+                      {proc.name}
+                    </Text>
                     <Text className="mt-0.5 text-xs text-muted-foreground">
                       {`${proc.steps.length} steps · ${proc.shortLabel}`}
                     </Text>
@@ -67,7 +90,9 @@ export default function LearnScreen() {
                           </Badge>
                         )}
                       </View>
-                      <Text className="text-sm text-muted-foreground">{step.detail}</Text>
+                      <Text className="text-sm text-muted-foreground">
+                        {step.detail}
+                      </Text>
                       {step.withoutItem && (
                         <Text className="text-xs text-muted-foreground">
                           Without equipment: {step.withoutItem}

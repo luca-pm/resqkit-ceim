@@ -3,15 +3,18 @@ import { Text, View, ViewProps } from 'react-native';
 
 // RN shadows are platform style props, not expressible via className, so
 // this stays a small shared style constant rather than an ad hoc value per
-// call site. Matches Alexandra's reference design's SHADOWS.medium exactly
-// (src/design/shadows.js) — theme-agnostic on purpose (a literal black at
-// low opacity reads as "soft elevation" in both light and dark).
+// call site. Matches Alexandra's reference design's SHADOWS.small exactly
+// (src/design/shadows.js) — the tier her own general-purpose elevated card
+// wrapper (PrimaryCard) actually uses, not SHADOWS.medium (reserved there
+// for her floating AI button specifically — see the ported one in
+// components/HomeAIButton.tsx). Theme-agnostic on purpose (a literal black
+// at low opacity reads as "soft elevation" in both light and dark).
 const ELEVATED_SHADOW = {
   shadowColor: '#000',
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.18,
-  shadowRadius: 5,
-  elevation: 4,
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.15,
+  shadowRadius: 2,
+  elevation: 2,
 };
 
 interface CardProps extends ViewProps {
