@@ -14,7 +14,14 @@
  * or not they ever create an account.
  */
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +67,9 @@ export default function HistoryScreen() {
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await client.entities.incident_records.query<{ items: IncidentRecord[] }>({
+      const res = await client.entities.incident_records.query<{
+        items: IncidentRecord[];
+      }>({
         sort: '-occurred_at',
         limit: 50,
       });
@@ -80,17 +89,21 @@ export default function HistoryScreen() {
   );
 
   const confirmDelete = (id: string) => {
-    Alert.alert('Delete this incident?', 'It will be removed from this device immediately.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          deleteRetained(id);
-          toast.success('Incident deleted.');
+    Alert.alert(
+      'Delete this incident?',
+      'It will be removed from this device immediately.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteRetained(id);
+            toast.success('Incident deleted.');
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   if (authLoading || !ready) {
@@ -110,11 +123,13 @@ export default function HistoryScreen() {
         <View className="gap-3">
           <View className="flex-row items-center gap-2">
             <Clock size={16} color={colors.primary} />
-            <Text className="font-semibold text-foreground">On this device</Text>
+            <Text className="font-semibold text-foreground">
+              On this device
+            </Text>
           </View>
           <Text className="text-sm text-muted-foreground">
-            Closed incidents still inside the retention period you chose. They delete themselves
-            when it runs out — nothing here was ever uploaded.
+            Closed incidents still inside the retention period you chose. They
+            delete themselves when it runs out — nothing here was ever uploaded.
           </Text>
 
           {retained.length === 0 ? (
@@ -127,42 +142,65 @@ export default function HistoryScreen() {
             </Card>
           ) : (
             retained.map((entry) => {
-              const ctx = CONTEXTS.find((c) => c.id === entry.incident.context)?.label;
+              const ctx = CONTEXTS.find(
+                (c) => c.id === entry.incident.context,
+              )?.label;
               return (
                 <Card key={entry.id}>
                   <Pressable
                     onPress={() =>
-                      router.push({ pathname: '/incident-detail', params: { source: 'local', id: entry.id } })
+                      router.push({
+                        pathname: '/incident-detail',
+                        params: { source: 'local', id: entry.id },
+                      })
                     }
                     accessibilityRole="button"
                     accessibilityLabel="View incident details"
                   >
                     <CardContent className="gap-2 pb-2">
-                      <View className="flex-row items-start justify-between gap-3">
+                      <View className="flex-row items-start gap-3">
+                        <View className="h-11 w-11 items-center justify-center rounded-md bg-muted">
+                          <Clock size={20} color={colors.mutedForeground} />
+                        </View>
                         <View className="flex-1">
                           <Text className="font-semibold text-foreground">
-                            {new Date(entry.incident.startedAt).toLocaleString()}
+                            {new Date(
+                              entry.incident.startedAt,
+                            ).toLocaleString()}
                             {ctx ? ` — ${ctx}` : ''}
                           </Text>
                           <Text className="mt-0.5 text-sm text-muted-foreground">
-                            {t('victims', { count: entry.incident.victimCount })}
+                            {t('victims', {
+                              count: entry.incident.victimCount,
+                            })}
                             {entry.incident.hazards.length > 0
                               ? ` · ${t('hazards', { count: entry.incident.hazards.length })}`
                               : ''}
                             {` · ${entry.incident.completedSteps.length} step(s) done`}
                           </Text>
                         </View>
-                        <View className="flex-row items-center gap-1.5">
-                          <Badge variant="secondary" tone="pastel">{timeLeft(entry.expiresAt)}</Badge>
-                          <ChevronRight size={16} color={colors.mutedForeground} />
+                        <View className="items-end gap-1.5">
+                          <Badge variant="secondary" tone="pastel">
+                            {timeLeft(entry.expiresAt)}
+                          </Badge>
+                          <ChevronRight
+                            size={16}
+                            color={colors.mutedForeground}
+                          />
                         </View>
                       </View>
                     </CardContent>
                   </Pressable>
                   <View className="px-4 pb-4">
-                    <Button size="sm" variant="outline" onPress={() => confirmDelete(entry.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onPress={() => confirmDelete(entry.id)}
+                    >
                       <Trash2 size={14} color={colors.foreground} />
-                      <Text className="text-xs font-medium text-foreground">Delete now</Text>
+                      <Text className="text-xs font-medium text-foreground">
+                        Delete now
+                      </Text>
                     </Button>
                   </View>
                 </Card>
@@ -175,17 +213,21 @@ export default function HistoryScreen() {
         <View className="gap-3">
           <View className="flex-row items-center gap-2">
             <Archive size={16} color={colors.secondary} />
-            <Text className="font-semibold text-foreground">Archived to your account</Text>
+            <Text className="font-semibold text-foreground">
+              Archived to your account
+            </Text>
           </View>
           <Text className="text-sm text-muted-foreground">
-            Incidents you explicitly archived. Retention never touches these — they stay until you
-            delete them.
+            Incidents you explicitly archived. Retention never touches these —
+            they stay until you delete them.
           </Text>
 
           {!user ? (
             <Card className="border-dashed">
               <CardContent className="gap-3">
-                <Text className="text-sm text-muted-foreground">{t('empty')}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {t('empty')}
+                </Text>
                 <Button size="sm" onPress={() => router.push('/sign-in')}>
                   Sign in
                 </Button>
@@ -202,7 +244,9 @@ export default function HistoryScreen() {
           ) : records.length === 0 ? (
             <Card className="border-dashed">
               <CardContent>
-                <Text className="text-sm text-muted-foreground">{t('empty')}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {t('empty')}
+                </Text>
               </CardContent>
             </Card>
           ) : (
@@ -218,10 +262,14 @@ export default function HistoryScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="View incident details"
                 >
-                  <CardContent className="flex-row items-center justify-between gap-3">
+                  <CardContent className="flex-row items-center gap-3">
+                    <View className="h-11 w-11 items-center justify-center rounded-md bg-muted">
+                      <Archive size={20} color={colors.mutedForeground} />
+                    </View>
                     <View className="flex-1 gap-1">
                       <Text className="font-semibold text-foreground">
-                        {new Date(item.occurred_at).toLocaleDateString()} — {item.context_type}
+                        {new Date(item.occurred_at).toLocaleDateString()} —{' '}
+                        {item.context_type}
                       </Text>
                       <Text className="text-sm text-muted-foreground">
                         {t('victims', { count: item.victim_count })}
